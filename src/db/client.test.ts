@@ -8,7 +8,7 @@ const TEST_DIR = join(tmpdir(), 'wasp-test-' + Date.now());
 process.env.WASP_DATA_DIR = TEST_DIR;
 
 // Import after setting env
-import { getData, initSchema, isInitialized, closeDb, getDataDir, resetCache } from './client.js';
+import { getDb, initSchema, isInitialized, closeDb, getDataDir, resetCache } from './client.js';
 
 describe('db/client', () => {
   beforeAll(() => {
@@ -27,10 +27,14 @@ describe('db/client', () => {
     expect(isInitialized()).toBe(true);
   });
 
-  it('should create data structure', () => {
-    const data = getData();
-    expect(data.contacts).toBeInstanceOf(Array);
-    expect(data.auditLog).toBeInstanceOf(Array);
-    expect(data.meta.version).toBe('0.0.1');
+  it('should create tables', () => {
+    const db = getDb();
+    const tables = db.query(`
+      SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
+    `).all() as { name: string }[];
+    
+    const tableNames = tables.map(t => t.name);
+    expect(tableNames).toContain('contacts');
+    expect(tableNames).toContain('audit_log');
   });
 });

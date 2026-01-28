@@ -1,14 +1,5 @@
-import { getData, saveData } from './client.js';
+import { getDb } from './client.js';
 import type { Contact, Platform, TrustLevel, CheckResult } from '../types.js';
-
-let nextId = 1;
-
-function getNextId(): number {
-  const data = getData();
-  const maxId = data.contacts.reduce((max, c) => Math.max(max, c.id), 0);
-  nextId = maxId + 1;
-  return nextId++;
-}
 
 export function addContact(
   identifier: string,
@@ -17,67 +8,89 @@ export function addContact(
   name?: string,
   notes?: string
 ): Contact {
-  const data = getData();
+  const db = getDb();
   
-  // Check if exists
-  const existingIndex = data.contacts.findIndex(
-    c => c.identifier === identifier && c.platform === platform
-  );
+  const stmt = db.prepare(`
+    INSERT INTO contacts (identifier, platform, trust, name, notes)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(identifier, platform) DO UPDATE SET
+      trust = excluded.trust,
+      name = COALESCE(excluded.name, contacts.name),
+      notes = COALESCE(excluded.notes, contacts.notes)
+  `);
   
-  if (existingIndex >= 0) {
-    // Update existing
-    const existing = data.contacts[existingIndex];
-    existing.trust = trust;
-    if (name) existing.name = name;
-    if (notes) existing.notes = notes;
-    saveData();
-    return existing;
-  }
+  stmt.run(identifier, platform, trust, name || null, notes || null);
   
-  // Create new
-  const contact: Contact = {
-    id: getNextId(),
-    identifier,
-    platform,
-    name: name || null,
-    trust,
-    addedAt: new Date().toISOString(),
-    notes: notes || null
+  // Fetch the inserted/updated row
+  const row = db.prepare('SELECT * FROM contacts WHERE identifier = ? AND platform = ?')
+    .get(identifier, platform) as any;
+  
+  return {
+    id: row.id,
+    identifier: row.identifier,
+    platform: row.platform as Platform,
+    name: row.name,
+    trust: row.trust as TrustLevel,
+    addedAt: row.added_at,
+    notes: row.notes
   };
-  
-  data.contacts.push(contact);
-  saveData();
-  return contact;
 }
 
 export function removeContact(identifier: string, platform: Platform = 'whatsapp'): boolean {
-  const data = getData();
-  const initialLength = data.contacts.length;
-  
-  data.contacts = data.contacts.filter(
-    c => !(c.identifier === identifier && c.platform === platform)
-  );
-  
-  const removed = data.contacts.length < initialLength;
-  if (removed) saveData();
-  return removed;
+  const db = getDb();
+  const stmt = db.prepare('DELETE FROM contacts WHERE identifier = ? AND platform = ?');
+  const result = stmt.run(identifier, platform);
+  return result.changes > 0;
 }
 
 export function getContact(identifier: string, platform: Platform = 'whatsapp'): Contact | null {
-  const data = getData();
-  return data.contacts.find(
-    c => c.identifier === identifier && c.platform === platform
-  ) || null;
+  const db = getDb();
+  const stmt = db.prepare('SELECT * FROM contacts WHERE identifier = ? AND platform = ?');
+  const row = stmt.get(identifier, platform) as any;
+  
+  if (!row) return null;
+  
+  return {
+    id: row.id,
+    identifier: row.identifier,
+    platform: row.platform as Platform,
+    name: row.name,
+    trust: row.trust as TrustLevel,
+    addedAt: row.added_at,
+    notes: row.notes
+  };
 }
 
 export function listContacts(platform?: Platform, trust?: TrustLevel): Contact[] {
-  const data = getData();
+  const db = getDb();
   
-  return data.contacts.filter(c => {
-    if (platform && c.platform !== platform) return false;
-    if (trust && c.trust !== trust) return false;
-    return true;
-  }).sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
+  let query = 'SELECT * FROM contacts WHERE 1=1';
+  const params: any[] = [];
+  
+  if (platform) {
+    query += ' AND platform = ?';
+    params.push(platform);
+  }
+  
+  if (trust) {
+    query += ' AND trust = ?';
+    params.push(trust);
+  }
+  
+  query += ' ORDER BY added_at DESC';
+  
+  const stmt = db.prepare(query);
+  const rows = stmt.all(...params) as any[];
+  
+  return rows.map(row => ({
+    id: row.id,
+    identifier: row.identifier,
+    platform: row.platform as Platform,
+    name: row.name,
+    trust: row.trust as TrustLevel,
+    addedAt: row.added_at,
+    notes: row.notes
+  }));
 }
 
 export function checkContact(identifier: string, platform: Platform = 'whatsapp'): CheckResult {
@@ -110,14 +123,8 @@ export function checkContact(identifier: string, platform: Platform = 'whatsapp'
 }
 
 export function updateTrust(identifier: string, platform: Platform, trust: TrustLevel): boolean {
-  const data = getData();
-  const contact = data.contacts.find(
-    c => c.identifier === identifier && c.platform === platform
-  );
-  
-  if (!contact) return false;
-  
-  contact.trust = trust;
-  saveData();
-  return true;
+  const db = getDb();
+  const stmt = db.prepare('UPDATE contacts SET trust = ? WHERE identifier = ? AND platform = ?');
+  const result = stmt.run(trust, identifier, platform);
+  return result.changes > 0;
 }

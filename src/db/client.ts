@@ -1,21 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { Database } from 'bun:sqlite';
+import { existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
-import type { Contact, AuditEntry } from '../types.js';
 
 const DATA_DIR = process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
-const DB_PATH = join(DATA_DIR, 'wasp.json');
+const DB_PATH = join(DATA_DIR, 'wasp.db');
 
-interface DbData {
-  contacts: Contact[];
-  auditLog: AuditEntry[];
-  meta: {
-    version: string;
-    createdAt: string;
-  };
-}
-
-let cachedData: DbData | null = null;
+let db: Database | null = null;
 
 export function getDataDir(): string {
   return DATA_DIR;
@@ -29,65 +20,57 @@ export function isInitialized(): boolean {
   return existsSync(DB_PATH);
 }
 
-function defaultData(): DbData {
-  return {
-    contacts: [],
-    auditLog: [],
-    meta: {
-      version: '0.0.1',
-      createdAt: new Date().toISOString()
+export function getDb(): Database {
+  if (!db) {
+    if (!existsSync(DATA_DIR)) {
+      mkdirSync(DATA_DIR, { recursive: true });
     }
-  };
-}
-
-export function getData(): DbData {
-  if (cachedData) return cachedData;
-  
-  if (!existsSync(DATA_DIR)) {
-    mkdirSync(DATA_DIR, { recursive: true });
+    db = new Database(DB_PATH);
+    db.exec('PRAGMA journal_mode = WAL');
   }
-  
-  if (!existsSync(DB_PATH)) {
-    cachedData = defaultData();
-    saveData();
-    return cachedData;
-  }
-  
-  try {
-    const raw = readFileSync(DB_PATH, 'utf-8');
-    cachedData = JSON.parse(raw);
-    return cachedData!;
-  } catch {
-    cachedData = defaultData();
-    saveData();
-    return cachedData;
-  }
-}
-
-export function saveData(): void {
-  if (!cachedData) return;
-  
-  if (!existsSync(DATA_DIR)) {
-    mkdirSync(DATA_DIR, { recursive: true });
-  }
-  
-  writeFileSync(DB_PATH, JSON.stringify(cachedData, null, 2));
+  return db;
 }
 
 export function initSchema(): void {
-  // For JSON storage, just ensure the file exists
-  getData();
+  const db = getDb();
+  
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS contacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      identifier TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'whatsapp',
+      name TEXT,
+      trust TEXT NOT NULL DEFAULT 'trusted',
+      added_at TEXT NOT NULL DEFAULT (datetime('now')),
+      notes TEXT,
+      UNIQUE(identifier, platform)
+    );
+
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+      identifier TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      decision TEXT NOT NULL,
+      reason TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_contacts_identifier ON contacts(identifier);
+    CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
+  `);
 }
 
 export function closeDb(): void {
-  // Save any pending changes
-  if (cachedData) {
-    saveData();
+  if (db) {
+    db.close();
+    db = null;
   }
-  cachedData = null;
 }
 
-// For testing - reset in-memory cache
+// For testing - reset in-memory state
 export function resetCache(): void {
-  cachedData = null;
+  if (db) {
+    db.close();
+    db = null;
+  }
 }

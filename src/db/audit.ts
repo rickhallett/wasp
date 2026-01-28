@@ -1,14 +1,5 @@
-import { getData, saveData } from './client.js';
+import { getDb } from './client.js';
 import type { AuditEntry, Platform } from '../types.js';
-
-let nextAuditId = 1;
-
-function getNextAuditId(): number {
-  const data = getData();
-  const maxId = data.auditLog.reduce((max, e) => Math.max(max, e.id), 0);
-  nextAuditId = maxId + 1;
-  return nextAuditId++;
-}
 
 export function logDecision(
   identifier: string,
@@ -16,25 +7,12 @@ export function logDecision(
   decision: 'allow' | 'deny' | 'limited',
   reason: string
 ): void {
-  const data = getData();
-  
-  const entry: AuditEntry = {
-    id: getNextAuditId(),
-    timestamp: new Date().toISOString(),
-    identifier,
-    platform,
-    decision,
-    reason
-  };
-  
-  data.auditLog.push(entry);
-  
-  // Keep audit log from growing too large (max 1000 entries)
-  if (data.auditLog.length > 1000) {
-    data.auditLog = data.auditLog.slice(-1000);
-  }
-  
-  saveData();
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO audit_log (identifier, platform, decision, reason)
+    VALUES (?, ?, ?, ?)
+  `);
+  stmt.run(identifier, platform, decision, reason);
 }
 
 export function getAuditLog(options: {
@@ -42,40 +20,47 @@ export function getAuditLog(options: {
   decision?: 'allow' | 'deny' | 'limited';
   since?: string;
 }): AuditEntry[] {
-  const data = getData();
+  const db = getDb();
   
-  let entries = [...data.auditLog];
+  let query = 'SELECT * FROM audit_log WHERE 1=1';
+  const params: any[] = [];
   
   if (options.decision) {
-    entries = entries.filter(e => e.decision === options.decision);
+    query += ' AND decision = ?';
+    params.push(options.decision);
   }
   
   if (options.since) {
-    const sinceDate = new Date(options.since);
-    entries = entries.filter(e => new Date(e.timestamp) >= sinceDate);
+    query += ' AND timestamp >= ?';
+    params.push(options.since);
   }
   
-  // Sort by timestamp descending
-  entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  query += ' ORDER BY timestamp DESC';
   
   if (options.limit) {
-    entries = entries.slice(0, options.limit);
+    query += ' LIMIT ?';
+    params.push(options.limit);
   }
   
-  return entries;
+  const stmt = db.prepare(query);
+  const rows = stmt.all(...params) as any[];
+  
+  return rows.map(row => ({
+    id: row.id,
+    timestamp: row.timestamp,
+    identifier: row.identifier,
+    platform: row.platform as Platform,
+    decision: row.decision as 'allow' | 'deny' | 'limited',
+    reason: row.reason
+  }));
 }
 
 export function clearAuditLog(olderThanDays: number = 30): number {
-  const data = getData();
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - olderThanDays);
-  
-  const initialLength = data.auditLog.length;
-  data.auditLog = data.auditLog.filter(
-    e => new Date(e.timestamp) >= cutoff
-  );
-  
-  const removed = initialLength - data.auditLog.length;
-  if (removed > 0) saveData();
-  return removed;
+  const db = getDb();
+  const stmt = db.prepare(`
+    DELETE FROM audit_log 
+    WHERE timestamp < datetime('now', '-' || ? || ' days')
+  `);
+  const result = stmt.run(olderThanDays);
+  return result.changes;
 }
