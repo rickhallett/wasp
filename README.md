@@ -16,6 +16,33 @@ wasp maintains a whitelist of trusted contacts. Messages from unknown sources ne
 
 Simple idea. Meaningful protection.
 
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      INBOUND MESSAGE                        │
+│            (WhatsApp, Telegram, Email, etc.)                │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         WASP                                │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │   Check     │  │   SQLite    │  │   Decision Engine   │  │
+│  │  Whitelist  │◄─┤  (bun:sql)  │  │  allow / deny / log │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+            ┌─────────────┴─────────────┐
+            │                           │
+            ▼                           ▼
+    ┌───────────────┐          ┌───────────────┐
+    │    ALLOW      │          │     DENY      │
+    │  → Moltbot    │          │  → Log + Drop │
+    │    Agent      │          │   (or notify) │
+    └───────────────┘          └───────────────┘
+```
+
 ## Installation
 
 ```bash
