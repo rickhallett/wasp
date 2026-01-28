@@ -3,19 +3,20 @@
   "version": "0.0.1",
   "description": "Security whitelist layer for Moltbot and agentic systems",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/cli.js",
   "bin": {
     "wasp": "dist/cli.js"
   },
   "scripts": {
-    "build": "bun build src/cli.ts --outdir dist --target node",
+    "build": "bun build src/cli.ts --outdir dist --target bun --minify",
     "dev": "bun run src/cli.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "prepublishOnly": "bun run build && bun test"
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "moltbot",
@@ -24,13 +25,21 @@
     "whitelist",
     "ai",
     "agent",
-    "prompt-injection"
+    "prompt-injection",
+    "sandcastle"
   ],
   "author": "Kai Hallett <kai@oceanheart.ai>",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/rickhallett/wasp"
+  },
+  "homepage": "https://github.com/rickhallett/wasp#readme",
+  "bugs": {
+    "url": "https://github.com/rickhallett/wasp/issues"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
   },
   "dependencies": {
     "commander": "^12.0.0",
