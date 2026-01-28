@@ -14,10 +14,12 @@
   <a href="#quick-start">Quick Start</a>
 </p>
 
-[![npm version](https://img.shields.io/npm/v/%40oceanheartai%2Fwasp)](https://www.npmjs.com/package/@oceanheartai/wasp)
-[![npm last update](https://img.shields.io/npm/last-update/%40oceanheartai%2Fwasp)](https://www.npmjs.com/package/@oceanheartai/wasp)
-[![GitHub created at](https://img.shields.io/github/created-at/rickhallett/wasp)](https://github.com/rickhallett/wasp)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+<p align="center">
+  <a href="https://www.npmjs.com/package/@oceanheartai/wasp"><img src="https://img.shields.io/npm/v/%40oceanheartai%2Fwasp" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/@oceanheartai/wasp"><img src="https://img.shields.io/npm/last-update/%40oceanheartai%2Fwasp" alt="npm last update" /></a>
+  <a href="https://github.com/rickhallett/wasp"><img src="https://img.shields.io/github/created-at/rickhallett/wasp" alt="GitHub created at" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+</p>
 
 <br />
 
