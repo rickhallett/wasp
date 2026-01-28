@@ -1,4 +1,4 @@
-import { initSchema, isInitialized, getDataDir } from '../db/client.js';
+import { getDataDir, initSchema, isInitialized } from '../db/client.js';
 
 export function runInit(force: boolean = false): void {
   if (isInitialized() && !force) {

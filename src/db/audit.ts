@@ -1,5 +1,5 @@
+import type { AuditEntry, AuditRow, Decision, Platform } from '../types.js';
 import { getDb } from './client.js';
-import type { AuditEntry, AuditRow, Platform, Decision } from '../types.js';
 
 /**
  * Map database row to AuditEntry interface.
@@ -11,7 +11,7 @@ function rowToAuditEntry(row: AuditRow): AuditEntry {
     identifier: row.identifier,
     platform: row.platform as Platform,
     decision: row.decision as Decision,
-    reason: row.reason || ''
+    reason: row.reason || '',
   };
 }
 
@@ -35,30 +35,30 @@ export function getAuditLog(options: {
   since?: string;
 }): AuditEntry[] {
   const db = getDb();
-  
+
   let query = 'SELECT * FROM audit_log WHERE 1=1';
   const params: (string | number)[] = [];
-  
+
   if (options.decision) {
     query += ' AND decision = ?';
     params.push(options.decision);
   }
-  
+
   if (options.since) {
     query += ' AND timestamp >= ?';
     params.push(options.since);
   }
-  
+
   query += ' ORDER BY timestamp DESC';
-  
+
   if (options.limit) {
     query += ' LIMIT ?';
     params.push(options.limit);
   }
-  
+
   const stmt = db.prepare(query);
   const rows = stmt.all(...params) as AuditRow[];
-  
+
   return rows.map(rowToAuditEntry);
 }
 

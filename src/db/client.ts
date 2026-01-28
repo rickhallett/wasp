@@ -1,7 +1,7 @@
+import { existsSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { createDatabase, type DbAdapter } from './adapter.js';
-import { existsSync, mkdirSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
 
 // Configuration - can be set explicitly or via env
 let configuredDataDir: string | null = null;
@@ -23,7 +23,9 @@ let db: DbAdapter | null = null;
  */
 export function setDataDir(dataDir: string): void {
   if (db) {
-    throw new Error('Cannot change data directory after database is initialized. Call closeDb() first.');
+    throw new Error(
+      'Cannot change data directory after database is initialized. Call closeDb() first.'
+    );
   }
   configuredDataDir = dataDir;
 }
@@ -51,7 +53,7 @@ export function getDb(): DbAdapter {
   if (!db) {
     const dataDir = getEffectiveDataDir();
     const dbPath = getEffectiveDbPath();
-    
+
     if (!existsSync(dataDir)) {
       mkdirSync(dataDir, { recursive: true });
     }
@@ -63,7 +65,7 @@ export function getDb(): DbAdapter {
 
 export function initSchema(): void {
   const database = getDb();
-  
+
   database.exec(`
     CREATE TABLE IF NOT EXISTS contacts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

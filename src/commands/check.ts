@@ -1,5 +1,5 @@
-import { checkContact } from '../db/contacts.js';
 import { logDecision } from '../db/audit.js';
+import { checkContact } from '../db/contacts.js';
 import type { Platform } from '../types.js';
 
 export function runCheck(

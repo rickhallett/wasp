@@ -1,25 +1,25 @@
 /**
  * Simulated User Tests
- * 
+ *
  * These tests simulate real-world user scenarios to verify
  * all trust level × tool combinations work as expected.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { existsSync, rmSync } from 'fs';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 describe('Simulated User Scenarios', () => {
-  const TEST_DIR = join(tmpdir(), 'wasp-sim-' + process.pid + '-' + Date.now());
+  const TEST_DIR = join(tmpdir(), `wasp-sim-${process.pid}-${Date.now()}`);
   let api: any;
   let triggerMessage: (senderId: string, platform?: string) => Promise<void>;
   let triggerTool: (toolName: string) => Promise<any>;
-  
+
   const createMockApi = () => {
     const hooks: Record<string, Function[]> = {};
     const logs: { level: string; msg: string }[] = [];
-    
+
     return {
       pluginConfig: {},
       logger: {
@@ -36,15 +36,17 @@ describe('Simulated User Scenarios', () => {
       registerCli: () => {},
       _hooks: hooks,
       _logs: logs,
-      _clearLogs: () => { logs.length = 0; },
+      _clearLogs: () => {
+        logs.length = 0;
+      },
       _triggerHook: async (hookName: string, event: any, ctx: any) => {
         const handlers = hooks[hookName] || [];
-        let result;
+        let result: unknown;
         for (const handler of handlers) {
           result = await handler(event, ctx);
         }
         return result;
-      }
+      },
     };
   };
 
@@ -53,38 +55,46 @@ describe('Simulated User Scenarios', () => {
       rmSync(TEST_DIR, { recursive: true });
     }
     process.env.WASP_DATA_DIR = TEST_DIR;
-    
+
     const { initSchema, resetCache, reloadPaths } = await import('./db/client.js');
     resetCache();
     reloadPaths();
     initSchema();
-    
+
     // Set up test contacts
     const { addContact } = await import('./db/contacts.js');
     addContact('+44-sovereign', 'whatsapp', 'sovereign', 'The Owner');
     addContact('+44-trusted', 'whatsapp', 'trusted', 'Trusted Friend');
     addContact('+44-limited', 'whatsapp', 'limited', 'Limited User');
     // No entry for '+44-unknown' - they're unknown
-    
+
     // Initialize plugin
     api = createMockApi();
     const { default: register } = await import('../plugin/index.js');
     register(api as any);
-    
+
     // Helper functions
     triggerMessage = async (senderId: string, platform = 'whatsapp') => {
-      await api._triggerHook('message_received', {
-        from: senderId,
-        content: 'test message',
-        metadata: { senderE164: senderId }
-      }, { channelId: platform, sessionKey: 'sim-session' });
+      await api._triggerHook(
+        'message_received',
+        {
+          from: senderId,
+          content: 'test message',
+          metadata: { senderE164: senderId },
+        },
+        { channelId: platform, sessionKey: 'sim-session' }
+      );
     };
-    
+
     triggerTool = async (toolName: string) => {
-      return await api._triggerHook('before_tool_call', {
-        name: toolName,
-        params: {}
-      }, { sessionKey: 'sim-session' });
+      return await api._triggerHook(
+        'before_tool_call',
+        {
+          name: toolName,
+          params: {},
+        },
+        { sessionKey: 'sim-session' }
+      );
     };
   });
 
@@ -295,14 +305,14 @@ describe('Simulated User Scenarios', () => {
   describe('Scenario: Trust Escalation Attempt', () => {
     it('unknown user cannot gain trust mid-conversation', async () => {
       await resetState();
-      
+
       // Unknown user sends message
       await triggerMessage('+44-attacker');
-      
+
       // Try dangerous tool - should be blocked
       let result = await triggerTool('exec');
       expect(result?.block).toBe(true);
-      
+
       // Attacker cannot magically become trusted
       // (trust is set by message_received, not by the agent)
       result = await triggerTool('exec');
@@ -313,17 +323,17 @@ describe('Simulated User Scenarios', () => {
   describe('Scenario: Rapid Message Switching', () => {
     it('last message sender determines trust', async () => {
       await resetState();
-      
+
       // Sovereign sends message
       await triggerMessage('+44-sovereign');
       let result = await triggerTool('exec');
       expect(result).toBeUndefined(); // Allowed
-      
+
       // Unknown immediately sends message
       await triggerMessage('+44-attacker');
       result = await triggerTool('exec');
       expect(result?.block).toBe(true); // Blocked!
-      
+
       // Sovereign sends again
       await triggerMessage('+44-sovereign');
       result = await triggerTool('exec');
@@ -334,15 +344,15 @@ describe('Simulated User Scenarios', () => {
   describe('Scenario: Session End Reset', () => {
     it('trust resets after agent_end', async () => {
       await resetState();
-      
+
       // Sovereign establishes trust
       await triggerMessage('+44-sovereign');
       let result = await triggerTool('exec');
       expect(result).toBeUndefined();
-      
+
       // Session ends
       await api._triggerHook('agent_end', {}, { sessionKey: 'sim-session' });
-      
+
       // No message context - dangerous tools blocked
       result = await triggerTool('exec');
       expect(result?.block).toBe(true);
@@ -352,66 +362,102 @@ describe('Simulated User Scenarios', () => {
   describe('Scenario: Concurrent Session Isolation', () => {
     it('different sessions have isolated trust states', async () => {
       // Session A: Sovereign user
-      await api._triggerHook('message_received', {
-        from: '+44-sovereign',
-        content: 'Session A message',
-        metadata: { senderE164: '+44-sovereign' }
-      }, { channelId: 'whatsapp', sessionKey: 'session-A' });
-      
+      await api._triggerHook(
+        'message_received',
+        {
+          from: '+44-sovereign',
+          content: 'Session A message',
+          metadata: { senderE164: '+44-sovereign' },
+        },
+        { channelId: 'whatsapp', sessionKey: 'session-A' }
+      );
+
       // Session B: Unknown user (concurrent)
-      await api._triggerHook('message_received', {
-        from: '+44-unknown',
-        content: 'Session B message',
-        metadata: { senderE164: '+44-unknown' }
-      }, { channelId: 'whatsapp', sessionKey: 'session-B' });
-      
+      await api._triggerHook(
+        'message_received',
+        {
+          from: '+44-unknown',
+          content: 'Session B message',
+          metadata: { senderE164: '+44-unknown' },
+        },
+        { channelId: 'whatsapp', sessionKey: 'session-B' }
+      );
+
       // Session A tool call should use Session A's trust (sovereign)
-      const resultA = await api._triggerHook('before_tool_call', {
-        name: 'exec'
-      }, { sessionKey: 'session-A' });
+      const resultA = await api._triggerHook(
+        'before_tool_call',
+        {
+          name: 'exec',
+        },
+        { sessionKey: 'session-A' }
+      );
       expect(resultA).toBeUndefined(); // Allowed for sovereign
-      
+
       // Session B tool call should use Session B's trust (unknown)
-      const resultB = await api._triggerHook('before_tool_call', {
-        name: 'exec'
-      }, { sessionKey: 'session-B' });
+      const resultB = await api._triggerHook(
+        'before_tool_call',
+        {
+          name: 'exec',
+        },
+        { sessionKey: 'session-B' }
+      );
       expect(resultB?.block).toBe(true); // Blocked for unknown
-      
+
       // Verify isolation: Session B didn't affect Session A
-      const resultA2 = await api._triggerHook('before_tool_call', {
-        name: 'exec'
-      }, { sessionKey: 'session-A' });
+      const resultA2 = await api._triggerHook(
+        'before_tool_call',
+        {
+          name: 'exec',
+        },
+        { sessionKey: 'session-A' }
+      );
       expect(resultA2).toBeUndefined(); // Still allowed
     });
 
     it('session state cleanup does not affect other sessions', async () => {
       // Session C: Trusted user
-      await api._triggerHook('message_received', {
-        from: '+44-trusted',
-        content: 'Session C',
-        metadata: { senderE164: '+44-trusted' }
-      }, { channelId: 'whatsapp', sessionKey: 'session-C' });
-      
+      await api._triggerHook(
+        'message_received',
+        {
+          from: '+44-trusted',
+          content: 'Session C',
+          metadata: { senderE164: '+44-trusted' },
+        },
+        { channelId: 'whatsapp', sessionKey: 'session-C' }
+      );
+
       // Session D: Sovereign user
-      await api._triggerHook('message_received', {
-        from: '+44-sovereign',
-        content: 'Session D',
-        metadata: { senderE164: '+44-sovereign' }
-      }, { channelId: 'whatsapp', sessionKey: 'session-D' });
-      
+      await api._triggerHook(
+        'message_received',
+        {
+          from: '+44-sovereign',
+          content: 'Session D',
+          metadata: { senderE164: '+44-sovereign' },
+        },
+        { channelId: 'whatsapp', sessionKey: 'session-D' }
+      );
+
       // End Session C
       await api._triggerHook('agent_end', {}, { sessionKey: 'session-C' });
-      
+
       // Session D should still work (isolated)
-      const resultD = await api._triggerHook('before_tool_call', {
-        name: 'exec'
-      }, { sessionKey: 'session-D' });
+      const resultD = await api._triggerHook(
+        'before_tool_call',
+        {
+          name: 'exec',
+        },
+        { sessionKey: 'session-D' }
+      );
       expect(resultD).toBeUndefined(); // Still allowed
-      
+
       // Session C is now cleared (unknown state)
-      const resultC = await api._triggerHook('before_tool_call', {
-        name: 'exec'
-      }, { sessionKey: 'session-C' });
+      const resultC = await api._triggerHook(
+        'before_tool_call',
+        {
+          name: 'exec',
+        },
+        { sessionKey: 'session-C' }
+      );
       expect(resultC?.block).toBe(true); // Blocked after cleanup
     });
   });

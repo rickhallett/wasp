@@ -1,5 +1,5 @@
-import { startServer } from '../server/index.js';
 import { isInitialized } from '../db/client.js';
+import { startServer } from '../server/index.js';
 
 export function runServe(options: { port?: number }): void {
   if (!isInitialized()) {

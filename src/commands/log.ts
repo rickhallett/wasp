@@ -1,13 +1,9 @@
 import { getAuditLog } from '../db/audit.js';
 
-export function runLog(options: {
-  limit?: number;
-  denied?: boolean;
-  json?: boolean;
-}): void {
+export function runLog(options: { limit?: number; denied?: boolean; json?: boolean }): void {
   const entries = getAuditLog({
     limit: options.limit || 50,
-    decision: options.denied ? 'deny' : undefined
+    decision: options.denied ? 'deny' : undefined,
   });
 
   if (entries.length === 0) {
@@ -21,7 +17,7 @@ export function runLog(options: {
   }
 
   console.log(`Last ${entries.length} audit entries:\n`);
-  
+
   for (const e of entries) {
     const icon = e.decision === 'allow' ? '✓' : e.decision === 'limited' ? '~' : '✗';
     console.log(`  ${icon} ${e.timestamp} | ${e.identifier} (${e.platform})`);

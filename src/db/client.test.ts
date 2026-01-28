@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { existsSync, rmSync } from 'fs';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 // Override data dir for tests
-const TEST_DIR = join(tmpdir(), 'wasp-test-' + Date.now());
+const TEST_DIR = join(tmpdir(), `wasp-test-${Date.now()}`);
 process.env.WASP_DATA_DIR = TEST_DIR;
 
 // Import after setting env
-import { getDb, initSchema, isInitialized, closeDb, getDataDir, resetCache } from './client.js';
+import { closeDb, getDb, initSchema, isInitialized, resetCache } from './client.js';
 
 describe('db/client', () => {
   beforeAll(() => {
@@ -33,8 +33,8 @@ describe('db/client', () => {
       SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
     `);
     const tables = stmt.all() as { name: string }[];
-    
-    const tableNames = tables.map(t => t.name);
+
+    const tableNames = tables.map((t) => t.name);
     expect(tableNames).toContain('contacts');
     expect(tableNames).toContain('audit_log');
     expect(tableNames).toContain('quarantine');

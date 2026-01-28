@@ -1,6 +1,6 @@
 /**
  * Database Adapter
- * 
+ *
  * Provides a unified interface for SQLite that works with both:
  * - Bun (bun:sqlite)
  * - Node.js (better-sqlite3)
@@ -28,7 +28,7 @@ if (isBun) {
   createDatabase = (path: string): DbAdapter => {
     const { Database } = require('bun:sqlite');
     const db = new Database(path);
-    
+
     return {
       exec: (sql: string) => db.exec(sql),
       prepare: (sql: string) => {
@@ -47,7 +47,7 @@ if (isBun) {
   createDatabase = (path: string): DbAdapter => {
     const Database = require('better-sqlite3');
     const db = new Database(path);
-    
+
     return {
       exec: (sql: string) => db.exec(sql),
       prepare: (sql: string) => {

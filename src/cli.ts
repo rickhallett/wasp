@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module';
 import { program } from 'commander';
-import { createRequire } from 'module';
-import { runInit } from './commands/init.js';
 import { runAdd } from './commands/add.js';
-import { runRemove } from './commands/remove.js';
-import { runList } from './commands/list.js';
 import { runCheck } from './commands/check.js';
+import { runInit } from './commands/init.js';
+import { runList } from './commands/list.js';
 import { runLog } from './commands/log.js';
-import { runServe } from './commands/serve.js';
+import { runRemove } from './commands/remove.js';
 import { runReview, showFirstTimeContacts } from './commands/review.js';
-import { isInitialized, initSchema, closeDb } from './db/client.js';
+import { runServe } from './commands/serve.js';
+import { closeDb, initSchema, isInitialized } from './db/client.js';
 
 // Import version from package.json (ESM compatible)
 const require = createRequire(import.meta.url);
@@ -33,7 +33,11 @@ program
 program
   .command('add <identifier>')
   .description('Add a contact to the whitelist')
-  .option('-p, --platform <platform>', 'Platform (whatsapp, telegram, email, discord, slack, signal)', 'whatsapp')
+  .option(
+    '-p, --platform <platform>',
+    'Platform (whatsapp, telegram, email, discord, slack, signal)',
+    'whatsapp'
+  )
   .option('-t, --trust <level>', 'Trust level (sovereign, trusted, limited)', 'trusted')
   .option('-n, --name <name>', 'Contact name')
   .option('--notes <notes>', 'Notes about this contact')
@@ -81,7 +85,7 @@ program
   .option('-j, --json', 'Output as JSON')
   .action((options) => {
     ensureInitialized();
-    runLog({ ...options, limit: parseInt(options.limit) });
+    runLog({ ...options, limit: parseInt(options.limit, 10) });
   });
 
 program
@@ -90,7 +94,7 @@ program
   .option('-p, --port <number>', 'Port to listen on', '3847')
   .action((options) => {
     ensureInitialized();
-    runServe({ port: parseInt(options.port) });
+    runServe({ port: parseInt(options.port, 10) });
   });
 
 program
@@ -110,7 +114,7 @@ program
   .option('-l, --limit <number>', 'Number to show', '20')
   .action((options) => {
     ensureInitialized();
-    showFirstTimeContacts(parseInt(options.limit));
+    showFirstTimeContacts(parseInt(options.limit, 10));
   });
 
 function ensureInitialized(): void {
@@ -121,11 +125,14 @@ function ensureInitialized(): void {
   }
 }
 
-program.parseAsync().then(() => {
-  closeDb();
-  process.exit(0);
-}).catch((err) => {
-  console.error(err);
-  closeDb();
-  process.exit(1);
-});
+program
+  .parseAsync()
+  .then(() => {
+    closeDb();
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error(err);
+    closeDb();
+    process.exit(1);
+  });

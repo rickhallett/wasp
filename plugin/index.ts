@@ -29,7 +29,7 @@ interface PluginApi {
   config: {
     get: (path: string) => any;
   };
-  on: (event: string, handler: (event: any) => Promise<boolean | void> | boolean | void) => void;
+  on: (event: string, handler: (event: any, ctx?: any) => Promise<any> | any) => void;
   registerCli: (fn: (ctx: { program: any }) => void, opts?: { commands: string[] }) => void;
   registerCommand: (cmd: {
     name: string;
@@ -251,8 +251,8 @@ export default function register(api: PluginApi) {
       .option('-p, --platform <platform>', 'Platform', 'whatsapp')
       .option('-t, --trust <level>', 'Trust level', 'trusted')
       .option('-n, --name <name>', 'Contact name')
-      .action((identifier, opts) => {
-        const contact = addContact(identifier, opts.platform, opts.trust, opts.name);
+      .action((identifier: string, opts: { platform: string; trust: string; name?: string }) => {
+        const contact = addContact(identifier, opts.platform as Platform, opts.trust as TrustLevel, opts.name);
         console.log(`Added: ${contact.identifier} (${contact.trust})`);
       });
 
@@ -260,8 +260,8 @@ export default function register(api: PluginApi) {
       .command('remove <identifier>')
       .description('Remove a contact')
       .option('-p, --platform <platform>', 'Platform', 'whatsapp')
-      .action((identifier, opts) => {
-        if (removeContact(identifier, opts.platform)) {
+      .action((identifier: string, opts: { platform: string }) => {
+        if (removeContact(identifier, opts.platform as Platform)) {
           console.log(`Removed: ${identifier}`);
         } else {
           console.log(`Not found: ${identifier}`);
@@ -272,8 +272,8 @@ export default function register(api: PluginApi) {
       .command('list')
       .description('List all contacts')
       .option('-t, --trust <level>', 'Filter by trust level')
-      .action((opts) => {
-        const contacts = listContacts(undefined, opts.trust);
+      .action((opts: { trust?: string }) => {
+        const contacts = listContacts(undefined, opts.trust as TrustLevel | undefined);
         if (contacts.length === 0) {
           console.log('No contacts found.');
           return;
@@ -291,7 +291,7 @@ export default function register(api: PluginApi) {
       .description('View audit log')
       .option('-l, --limit <n>', 'Number of entries', '20')
       .option('-d, --denied', 'Show only denied')
-      .action((opts) => {
+      .action((opts: { limit: string; denied?: boolean }) => {
         const entries = getAuditLog({
           limit: parseInt(opts.limit),
           decision: opts.denied ? 'deny' : undefined
@@ -314,13 +314,13 @@ export default function register(api: PluginApi) {
       .description('Review quarantined messages')
       .option('--approve <id>', 'Approve sender and release messages')
       .option('--deny <id>', 'Permanently block sender')
-      .action(async (opts) => {
+      .action(async (opts: { approve?: string; deny?: string }) => {
         if (opts.approve) {
           // Add to trusted and release messages
           const released = releaseQuarantined(opts.approve);
           if (released.length > 0) {
-            addContact(released[0].identifier, released[0].platform, 'trusted');
-            console.log(`Approved ${released[0].identifier}, released ${released.length} message(s)`);
+            addContact(released[0]?.identifier, released[0]?.platform, 'trusted');
+            console.log(`Approved ${released[0]?.identifier}, released ${released.length} message(s)`);
           } else {
             console.log(`No quarantined messages for: ${opts.approve}`);
           }

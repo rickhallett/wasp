@@ -1,5 +1,12 @@
 // Core types
-export type Platform = 'whatsapp' | 'telegram' | 'email' | 'discord' | 'slack' | 'signal' | 'webchat';
+export type Platform =
+  | 'whatsapp'
+  | 'telegram'
+  | 'email'
+  | 'discord'
+  | 'slack'
+  | 'signal'
+  | 'webchat';
 
 export type TrustLevel = 'sovereign' | 'trusted' | 'limited';
 
@@ -74,9 +81,17 @@ export interface QuarantineRow {
 
 // Constants
 export const VALID_PLATFORMS: readonly Platform[] = [
-  'whatsapp', 'telegram', 'email', 'discord', 'slack', 'signal', 'webchat'
+  'whatsapp',
+  'telegram',
+  'email',
+  'discord',
+  'slack',
+  'signal',
+  'webchat',
 ] as const;
 
 export const VALID_TRUST_LEVELS: readonly TrustLevel[] = [
-  'sovereign', 'trusted', 'limited'
+  'sovereign',
+  'trusted',
+  'limited',
 ] as const;

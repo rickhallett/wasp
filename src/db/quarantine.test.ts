@@ -1,12 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
-import { existsSync, rmSync } from 'fs';
-import { join } from 'path';
-import { tmpdir } from 'os';
-import { Database } from 'bun:sqlite';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 describe('db/quarantine', () => {
-  const TEST_DIR = join(tmpdir(), 'wasp-quarantine-' + process.pid + '-' + Date.now());
-  
+  const TEST_DIR = join(tmpdir(), `wasp-quarantine-${process.pid}-${Date.now()}`);
+
   beforeAll(() => {
     // Clean up any existing test dir
     if (existsSync(TEST_DIR)) {
@@ -26,18 +25,24 @@ describe('db/quarantine', () => {
   it('should quarantine and retrieve messages', async () => {
     // Dynamic import to get fresh module with correct env
     const { initSchema, resetCache, reloadPaths } = await import('./client.js');
-    const { quarantineMessage, getQuarantined, getQuarantinedByIdentifier, releaseQuarantined, deleteQuarantined } = await import('./quarantine.js');
-    
+    const {
+      quarantineMessage,
+      getQuarantined,
+      getQuarantinedByIdentifier,
+      releaseQuarantined,
+      deleteQuarantined,
+    } = await import('./quarantine.js');
+
     resetCache();
     reloadPaths();
     initSchema();
-    
+
     // Test quarantine
     quarantineMessage('+441234567890', 'whatsapp', 'Hello, this is a test message');
     const quarantined = getQuarantined();
     expect(quarantined.length).toBe(1);
     expect(quarantined[0].identifier).toBe('+441234567890');
-    
+
     // Test long message truncation
     const longMessage = 'A'.repeat(200);
     quarantineMessage('+449876543210', 'whatsapp', longMessage);
@@ -45,17 +50,17 @@ describe('db/quarantine', () => {
     expect(longQuarantined.length).toBe(1);
     expect(longQuarantined[0].messagePreview.length).toBeLessThan(110);
     expect(longQuarantined[0].fullMessage.length).toBe(200);
-    
+
     // Test get by identifier
     const byId = getQuarantinedByIdentifier('+441234567890');
     expect(byId.length).toBe(1);
-    
+
     // Test release
     const released = releaseQuarantined('+441234567890');
     expect(released.length).toBe(1);
     const afterRelease = getQuarantinedByIdentifier('+441234567890');
     expect(afterRelease.length).toBe(0);
-    
+
     // Test delete
     quarantineMessage('+440000000000', 'whatsapp', 'Delete me');
     const deleted = deleteQuarantined('+440000000000');

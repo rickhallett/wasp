@@ -1,7 +1,6 @@
-import { getQuarantined, releaseQuarantined, deleteQuarantined } from '../db/quarantine.js';
-import { addContact } from '../db/contacts.js';
 import { getAuditLog } from '../db/audit.js';
-import type { Platform } from '../types.js';
+import { addContact } from '../db/contacts.js';
+import { deleteQuarantined, getQuarantined, releaseQuarantined } from '../db/quarantine.js';
 
 interface ReviewOptions {
   approve?: string;
@@ -37,7 +36,7 @@ export async function runReview(options: ReviewOptions): Promise<void> {
 
   // Show quarantine summary
   const quarantined = getQuarantined(50);
-  
+
   if (quarantined.length === 0) {
     console.log('\n🐝 Quarantine is empty - no messages awaiting review\n');
     return;
@@ -50,12 +49,12 @@ export async function runReview(options: ReviewOptions): Promise<void> {
     if (!bySender.has(key)) {
       bySender.set(key, []);
     }
-    bySender.get(key)!.push(msg);
+    bySender.get(key)?.push(msg);
   }
 
   console.log(`\n🐝 Quarantine Review\n`);
   console.log(`${bySender.size} sender(s), ${quarantined.length} message(s) awaiting review\n`);
-  console.log('─'.repeat(60) + '\n');
+  console.log(`${'─'.repeat(60)}\n`);
 
   let index = 1;
   for (const [key, messages] of bySender) {
@@ -63,13 +62,13 @@ export async function runReview(options: ReviewOptions): Promise<void> {
     console.log(`${index}. ${identifier} (${platform})`);
     console.log(`   ${messages.length} message(s)`);
     console.log('');
-    
+
     // Show preview of first message
     const first = messages[0];
     console.log(`   First: "${first.messagePreview}"`);
     console.log(`   Time:  ${first.timestamp}`);
     console.log('');
-    
+
     index++;
   }
 
@@ -89,11 +88,11 @@ export async function runReview(options: ReviewOptions): Promise<void> {
 // Show first-time contacts from audit log (not in quarantine)
 export function showFirstTimeContacts(limit: number = 20): void {
   const entries = getAuditLog({ limit: 100, decision: 'deny' });
-  
+
   // Get unique identifiers
   const seen = new Set<string>();
   const unique: typeof entries = [];
-  
+
   for (const e of entries) {
     const key = `${e.identifier}|${e.platform}`;
     if (!seen.has(key)) {
@@ -109,7 +108,7 @@ export function showFirstTimeContacts(limit: number = 20): void {
   }
 
   console.log(`\n🐝 Recently Blocked Contacts\n`);
-  console.log('─'.repeat(60) + '\n');
+  console.log(`${'─'.repeat(60)}\n`);
 
   for (const e of unique) {
     console.log(`  ${e.identifier} (${e.platform})`);

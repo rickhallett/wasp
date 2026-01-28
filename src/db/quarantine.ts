@@ -1,5 +1,5 @@
-import { getDb } from './client.js';
 import type { Platform, QuarantinedMessage, QuarantineRow } from '../types.js';
+import { getDb } from './client.js';
 
 /**
  * Map database row to QuarantinedMessage interface.
@@ -12,19 +12,15 @@ function rowToQuarantinedMessage(row: QuarantineRow): QuarantinedMessage {
     messagePreview: row.message_preview || '',
     fullMessage: row.full_message || '',
     timestamp: row.timestamp,
-    reviewed: !!row.reviewed
+    reviewed: !!row.reviewed,
   };
 }
 
-export function quarantineMessage(
-  identifier: string,
-  platform: Platform,
-  message: string
-): void {
+export function quarantineMessage(identifier: string, platform: Platform, message: string): void {
   const db = getDb();
-  
-  const preview = message.length > 100 ? message.slice(0, 100) + '...' : message;
-  
+
+  const preview = message.length > 100 ? `${message.slice(0, 100)}...` : message;
+
   const stmt = db.prepare(`
     INSERT INTO quarantine (identifier, platform, message_preview, full_message)
     VALUES (?, ?, ?, ?)
@@ -34,7 +30,7 @@ export function quarantineMessage(
 
 export function getQuarantined(limit: number = 50): QuarantinedMessage[] {
   const db = getDb();
-  
+
   const stmt = db.prepare(`
     SELECT * FROM quarantine 
     WHERE reviewed = 0 
@@ -42,7 +38,7 @@ export function getQuarantined(limit: number = 50): QuarantinedMessage[] {
     LIMIT ?
   `);
   const rows = stmt.all(limit) as QuarantineRow[];
-  
+
   return rows.map(rowToQuarantinedMessage);
 }
 
@@ -51,20 +47,23 @@ export function getQuarantinedByIdentifier(
   platform: Platform = 'whatsapp'
 ): QuarantinedMessage[] {
   const db = getDb();
-  
+
   const stmt = db.prepare(`
     SELECT * FROM quarantine 
     WHERE identifier = ? AND platform = ? AND reviewed = 0
     ORDER BY timestamp ASC
   `);
   const rows = stmt.all(identifier, platform) as QuarantineRow[];
-  
+
   return rows.map(rowToQuarantinedMessage);
 }
 
-export function releaseQuarantined(identifier: string, platform: Platform = 'whatsapp'): QuarantinedMessage[] {
+export function releaseQuarantined(
+  identifier: string,
+  platform: Platform = 'whatsapp'
+): QuarantinedMessage[] {
   const messages = getQuarantinedByIdentifier(identifier, platform);
-  
+
   if (messages.length > 0) {
     const db = getDb();
     const stmt = db.prepare(`
@@ -73,13 +72,13 @@ export function releaseQuarantined(identifier: string, platform: Platform = 'wha
     `);
     stmt.run(identifier, platform);
   }
-  
+
   return messages;
 }
 
 export function deleteQuarantined(identifier: string, platform: Platform = 'whatsapp'): number {
   const db = getDb();
-  
+
   const stmt = db.prepare(`
     DELETE FROM quarantine WHERE identifier = ? AND platform = ?
   `);
@@ -89,7 +88,7 @@ export function deleteQuarantined(identifier: string, platform: Platform = 'what
 
 export function clearOldQuarantine(olderThanDays: number = 30): number {
   const db = getDb();
-  
+
   const stmt = db.prepare(`
     DELETE FROM quarantine 
     WHERE timestamp < datetime('now', '-' || ? || ' days')

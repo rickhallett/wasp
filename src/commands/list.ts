@@ -19,7 +19,7 @@ export function runList(options: {
   }
 
   console.log(`Found ${contacts.length} contact(s):\n`);
-  
+
   for (const c of contacts) {
     const name = c.name ? ` (${c.name})` : '';
     console.log(`  ${c.identifier}${name}`);
