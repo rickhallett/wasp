@@ -1,6 +1,6 @@
 {
   "name": "@oceanheartai/wasp",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Security whitelist layer for Moltbot and agentic systems",
   "type": "module",
   "main": "dist/cli.js",
