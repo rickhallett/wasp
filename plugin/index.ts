@@ -90,12 +90,18 @@ export default function register(api: PluginApi) {
   // Audit incoming messages (can't block - void hook)
   // ============================================
   api.on('message_received', async (event: any, ctx: any) => {
-    // Event structure from dispatch-from-config.js:
-    // event.from, event.content, event.metadata.senderId, event.metadata.senderE164
-    // ctx.channelId, ctx.accountId, ctx.conversationId
-    
-    const senderId = event.metadata?.senderE164 || event.metadata?.senderId || event.from;
-    const channel = (ctx?.channelId || 'whatsapp') as Platform;
+    // Sender ID extraction - try multiple sources for cross-channel compatibility:
+    // - ctx.SenderE164: Phone number (WhatsApp, Signal)
+    // - ctx.SenderId: Platform-specific ID (Telegram user ID, Discord snowflake, Slack user ID)
+    // - event.metadata.senderE164 / senderId: Legacy/alternative paths
+    // - event.from: Fallback
+    const senderId =
+      ctx?.SenderE164 ||
+      ctx?.SenderId ||
+      event.metadata?.senderE164 ||
+      event.metadata?.senderId ||
+      event.from;
+    const channel = (ctx?.channelId || ctx?.ChannelId || 'whatsapp') as Platform;
     
     // Get session key from context for concurrent safety
     const sessionKey = ctx?.sessionKey || ctx?.conversationId || DEFAULT_SESSION;
