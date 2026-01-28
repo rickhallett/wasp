@@ -1,6 +1,6 @@
 {
   "name": "@oceanheartai/wasp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Security whitelist layer for Moltbot and agentic systems",
   "type": "module",
   "main": "dist/cli.js",
@@ -38,7 +38,9 @@
   },
   "homepage": "https://github.com/rickhallett/wasp#readme",
   "clawdbot": {
-    "extensions": ["./plugin"]
+    "extensions": [
+      "./plugin"
+    ]
   },
   "bugs": {
     "url": "https://github.com/rickhallett/wasp/issues"
