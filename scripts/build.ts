@@ -13,6 +13,7 @@ await Bun.build({
   define: {
     __VERSION__: JSON.stringify(version),
   },
+  external: ['better-sqlite3'], // Native addon - can't bundle
 });
 
 console.log(`Built wasp v${version}`);
