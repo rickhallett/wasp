@@ -7,15 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-28
+
 ### Added
 - SKILL.md for Moltbot agent integration
 - Authentication middleware for admin HTTP endpoints
 - Input validation on all HTTP endpoints
 - Proper TypeScript interfaces for database rows
-- Plugin hook tests (7 tests)
-- HTTP server tests (14 tests)
-- Audit log tests (3 tests)
+- Comprehensive test suite (88 tests total):
+  - Plugin hook tests (7)
+  - HTTP server tests (14)
+  - Audit log tests (3)
+  - Edge case tests (17)
+  - Simulated user scenario tests (27)
 - CHANGELOG.md
+- TOOL-ACCESS-MATRIX.md - complete access control reference
+- ATC-ASSESSMENT.md - production readiness review
 
 ### Changed
 - CLI version now imported from package.json
@@ -24,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiter interval uses `.unref()` for clean test exit
 
 ### Fixed
-- Bug where unknown senders (trust=null) could use dangerous tools
+- **Critical:** Bug where unknown senders (trust=null) could use dangerous tools
 - JSON parsing errors now caught with proper 400 response
 
 ### Security
@@ -32,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default: localhost-only access
 - Set `WASP_API_TOKEN` environment variable for remote access
 - Bearer token or raw token supported in Authorization header
+- SQL injection verified protected (parameterized queries)
+- All trust × tool combinations tested
 
 ## [0.1.1] - 2026-01-28
 
@@ -55,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial development release (pre-npm publish)
 
-[Unreleased]: https://github.com/rickhallett/wasp/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/rickhallett/wasp/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/rickhallett/wasp/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/rickhallett/wasp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/rickhallett/wasp/releases/tag/v0.1.0
