@@ -1,5 +1,5 @@
 {
-  "name": "@oai/wasp",
+  "name": "@oceanheartai/wasp",
   "version": "0.0.1",
   "description": "Security whitelist layer for Moltbot and agentic systems",
   "type": "module",

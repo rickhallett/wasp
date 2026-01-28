@@ -19,13 +19,13 @@ Simple idea. Meaningful protection.
 ## Installation
 
 ```bash
-bun add @oai/wasp
+bun add @oceanheartai/wasp
 ```
 
 Or run directly:
 
 ```bash
-bunx @oai/wasp init
+bunx @oceanheartai/wasp init
 ```
 
 ## Quick Start
