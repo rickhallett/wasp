@@ -116,33 +116,29 @@ export default function register(api: PluginApi) {
   api.on('before_tool_call', async (event: any, ctx: any) => {
     const toolName = event.name || event.toolName;
     
-    // No restriction for trusted/sovereign
-    if (!currentTurnTrust || currentTurnTrust === 'trusted' || currentTurnTrust === 'sovereign') {
+    // Allow all tools for trusted/sovereign
+    if (currentTurnTrust === 'trusted' || currentTurnTrust === 'sovereign') {
       return undefined; // Don't modify
     }
 
-    // Unknown sender (not in whitelist) - block dangerous tools
-    if (!currentTurnTrust || currentTurnTrust === 'limited') {
-      // Allow safe tools
-      if (safeTools.includes(toolName)) {
-        api.logger.debug(`[wasp] Tool ${toolName} allowed (safe list)`);
-        return undefined;
-      }
-
-      // Block dangerous tools
-      if (dangerousTools.includes(toolName)) {
-        api.logger.warn(`[wasp] BLOCKED tool ${toolName} for sender ${currentTurnSender} (trust: ${currentTurnTrust || 'unknown'})`);
-        return { 
-          block: true, 
-          blockReason: `wasp: tool ${toolName} blocked for untrusted sender` 
-        };
-      }
-
-      // Default: allow unknown tools
-      api.logger.debug(`[wasp] Tool ${toolName} allowed (not in dangerous list)`);
+    // For limited trust OR unknown (null) senders - restrict dangerous tools
+    // Allow safe tools
+    if (safeTools.includes(toolName)) {
+      api.logger.debug(`[wasp] Tool ${toolName} allowed (safe list)`);
       return undefined;
     }
 
+    // Block dangerous tools
+    if (dangerousTools.includes(toolName)) {
+      api.logger.warn(`[wasp] BLOCKED tool ${toolName} for sender ${currentTurnSender} (trust: ${currentTurnTrust || 'unknown'})`);
+      return { 
+        block: true, 
+        blockReason: `wasp: tool ${toolName} blocked for untrusted sender` 
+      };
+    }
+
+    // Default: allow unknown tools (not in either list)
+    api.logger.debug(`[wasp] Tool ${toolName} allowed (not in dangerous list)`);
     return undefined;
   });
 
