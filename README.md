@@ -62,12 +62,12 @@ bunx @oceanheartai/wasp init
 wasp init
 
 # Add trusted contacts
-wasp add "+440123456789" --name "Kai" --trust sovereign
-wasp add "+441234567890" --name "Ayshe" --trust trusted
+wasp add "+440123456789" --name "You" --trust sovereign
+wasp add "+441234567890" --name "Partner" --trust trusted
 
 # Check if a contact is allowed
 wasp check "+441234567890"
-# → {"allowed": true, "trust": "trusted", "name": "Ayshe"}
+# → {"allowed": true, "trust": "trusted", "name": "Partner"}
 ```
 
 ## Trust Levels
