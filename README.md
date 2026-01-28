@@ -1,4 +1,18 @@
-# wasp
+<p align="center">
+  <img src="./assets/logo.png" alt="wasp logo" width="128" />
+</p>
+
+<h1 align="center">wasp</h1>
+
+<p align="center">
+  <strong>Security whitelist for agentic AI</strong>
+</p>
+
+<p align="center">
+  <a href="https://wasp.ws">wasp.ws</a> •
+  <a href="https://www.npmjs.com/package/@oceanheartai/wasp">npm</a> •
+  <a href="#quick-start">Quick Start</a>
+</p>
 
 [![npm version](https://img.shields.io/npm/v/%40oceanheartai%2Fwasp)](https://www.npmjs.com/package/@oceanheartai/wasp)
 [![npm last update](https://img.shields.io/npm/last-update/%40oceanheartai%2Fwasp)](https://www.npmjs.com/package/@oceanheartai/wasp)
