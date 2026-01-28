@@ -1,0 +1,10 @@
+{
+  "name": "wasp",
+  "version": "0.1.0",
+  "description": "wasp Moltbot plugin - security whitelist layer",
+  "main": "index.ts",
+  "clawdbot": {
+    "extensions": ["./index.ts"]
+  },
+  "dependencies": {}
+}

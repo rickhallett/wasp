@@ -37,6 +37,9 @@
     "url": "https://github.com/rickhallett/wasp"
   },
   "homepage": "https://github.com/rickhallett/wasp#readme",
+  "clawdbot": {
+    "extensions": ["./plugin"]
+  },
   "bugs": {
     "url": "https://github.com/rickhallett/wasp/issues"
   },
@@ -44,10 +47,12 @@
     "bun": ">=1.0.0"
   },
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "commander": "^12.0.0",
     "hono": "^4.0.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "latest",
     "typescript": "^5.0.0"
   }

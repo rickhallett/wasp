@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import { createDatabase, type DbAdapter } from './adapter.js';
 import { existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -6,7 +6,7 @@ import { join } from 'path';
 let DATA_DIR = process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
 let DB_PATH = join(DATA_DIR, 'wasp.db');
 
-let db: Database | null = null;
+let db: DbAdapter | null = null;
 
 // For testing - reload paths from env
 export function reloadPaths(): void {
@@ -26,12 +26,12 @@ export function isInitialized(): boolean {
   return existsSync(DB_PATH);
 }
 
-export function getDb(): Database {
+export function getDb(): DbAdapter {
   if (!db) {
     if (!existsSync(DATA_DIR)) {
       mkdirSync(DATA_DIR, { recursive: true });
     }
-    db = new Database(DB_PATH);
+    db = createDatabase(DB_PATH);
     db.exec('PRAGMA journal_mode = WAL');
   }
   return db;

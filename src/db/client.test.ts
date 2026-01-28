@@ -29,9 +29,10 @@ describe('db/client', () => {
 
   it('should create tables', () => {
     const db = getDb();
-    const tables = db.query(`
+    const stmt = db.prepare(`
       SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
-    `).all() as { name: string }[];
+    `);
+    const tables = stmt.all() as { name: string }[];
     
     const tableNames = tables.map(t => t.name);
     expect(tableNames).toContain('contacts');

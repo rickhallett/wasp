@@ -9,7 +9,7 @@ import { runCheck } from './commands/check.js';
 import { runLog } from './commands/log.js';
 import { runServe } from './commands/serve.js';
 import { runReview, showFirstTimeContacts } from './commands/review.js';
-import { isInitialized, initSchema } from './db/client.js';
+import { isInitialized, initSchema, closeDb } from './db/client.js';
 
 const VERSION = '0.0.1';
 
@@ -117,4 +117,11 @@ function ensureInitialized(): void {
   }
 }
 
-program.parse();
+program.parseAsync().then(() => {
+  closeDb();
+  process.exit(0);
+}).catch((err) => {
+  console.error(err);
+  closeDb();
+  process.exit(1);
+});

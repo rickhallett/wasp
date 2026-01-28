@@ -5,7 +5,8 @@
  * and controls tool access based on sender trust levels.
  */
 
-import { checkContact, initSchema, addContact, listContacts, removeContact } from '../src/db/contacts.js';
+import { checkContact, addContact, listContacts, removeContact } from '../src/db/contacts.js';
+import { initSchema } from '../src/db/client.js';
 import { logDecision, getAuditLog } from '../src/db/audit.js';
 import { quarantineMessage, getQuarantined, releaseQuarantined } from '../src/db/quarantine.js';
 import type { Platform, TrustLevel } from '../src/types.js';
@@ -44,7 +45,8 @@ let currentTurnTrust: TrustLevel | null = null;
 let currentTurnSender: string | null = null;
 
 export default function register(api: PluginApi) {
-  const config: WaspConfig = api.config.get('plugins.entries.wasp.config') || {};
+  // pluginConfig is our plugin's config from plugins.entries.wasp.config
+  const config: WaspConfig = (api as any).pluginConfig || {};
   
   // Set custom data dir if configured
   if (config.dataDir) {
@@ -65,15 +67,19 @@ export default function register(api: PluginApi) {
 
   // ============================================
   // Hook: message_received
-  // Filter messages before they reach the agent
+  // Audit incoming messages (can't block - void hook)
   // ============================================
-  api.on('message_received', async (event) => {
-    const senderId = event.context?.senderId;
-    const channel = event.context?.channel as Platform || 'whatsapp';
+  api.on('message_received', async (event: any, ctx: any) => {
+    // Event structure from dispatch-from-config.js:
+    // event.from, event.content, event.metadata.senderId, event.metadata.senderE164
+    // ctx.channelId, ctx.accountId, ctx.conversationId
+    
+    const senderId = event.metadata?.senderE164 || event.metadata?.senderId || event.from;
+    const channel = (ctx?.channelId || 'whatsapp') as Platform;
     
     if (!senderId) {
-      api.logger.debug('[wasp] No senderId in message, allowing');
-      return true;
+      api.logger.debug('[wasp] No senderId in message');
+      return;
     }
 
     const result = checkContact(senderId, channel);
@@ -83,20 +89,15 @@ export default function register(api: PluginApi) {
     logDecision(senderId, channel, decision, result.reason);
 
     if (!result.allowed) {
-      api.logger.info(`[wasp] BLOCKED: ${senderId} (${channel}) - ${result.reason}`);
+      api.logger.info(`[wasp] AUDIT: ${senderId} (${channel}) - ${result.reason}`);
       
       if (defaultAction === 'quarantine') {
-        // Store message for later review
-        const messageText = event.context?.messageText || event.context?.body || '';
+        const messageText = event.content || '';
         quarantineMessage(senderId, channel, messageText);
         api.logger.info(`[wasp] Message quarantined for review`);
       }
-      
-      // Block the message from reaching the agent
-      return false;
-    }
-
-    if (result.trust === 'limited') {
+      // Note: Can't actually block here - message_received is fire-and-forget
+    } else if (result.trust === 'limited') {
       api.logger.info(`[wasp] LIMITED: ${senderId} - tools will be restricted`);
     } else {
       api.logger.debug(`[wasp] ALLOWED: ${senderId} (${result.trust})`);
@@ -105,46 +106,44 @@ export default function register(api: PluginApi) {
     // Store trust level for tool interception
     currentTurnTrust = result.trust;
     currentTurnSender = senderId;
-
-    // Inject trust metadata into context for downstream use
-    event.context.waspTrust = result.trust;
-    event.context.waspName = result.name;
-
-    return true;
   });
 
   // ============================================
   // Hook: before_tool_call
-  // Intercept tool calls for limited trust senders
+  // Intercept tool calls for limited/untrusted senders
+  // Returns { block: true, blockReason: "..." } to block
   // ============================================
-  api.on('before_tool_call', async (event) => {
-    const toolName = event.toolName || event.name;
+  api.on('before_tool_call', async (event: any, ctx: any) => {
+    const toolName = event.name || event.toolName;
     
     // No restriction for trusted/sovereign
     if (!currentTurnTrust || currentTurnTrust === 'trusted' || currentTurnTrust === 'sovereign') {
-      return true;
+      return undefined; // Don't modify
     }
 
-    // Limited trust - check tool allowlist
-    if (currentTurnTrust === 'limited') {
+    // Unknown sender (not in whitelist) - block dangerous tools
+    if (!currentTurnTrust || currentTurnTrust === 'limited') {
       // Allow safe tools
       if (safeTools.includes(toolName)) {
         api.logger.debug(`[wasp] Tool ${toolName} allowed (safe list)`);
-        return true;
+        return undefined;
       }
 
       // Block dangerous tools
       if (dangerousTools.includes(toolName)) {
-        api.logger.warn(`[wasp] BLOCKED tool ${toolName} for limited sender ${currentTurnSender}`);
-        return false;
+        api.logger.warn(`[wasp] BLOCKED tool ${toolName} for sender ${currentTurnSender} (trust: ${currentTurnTrust || 'unknown'})`);
+        return { 
+          block: true, 
+          blockReason: `wasp: tool ${toolName} blocked for untrusted sender` 
+        };
       }
 
-      // Default: allow unknown tools (could make this configurable)
+      // Default: allow unknown tools
       api.logger.debug(`[wasp] Tool ${toolName} allowed (not in dangerous list)`);
-      return true;
+      return undefined;
     }
 
-    return true;
+    return undefined;
   });
 
   // ============================================
