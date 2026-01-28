@@ -8,6 +8,7 @@ import { runList } from './commands/list.js';
 import { runCheck } from './commands/check.js';
 import { runLog } from './commands/log.js';
 import { runServe } from './commands/serve.js';
+import { runReview, showFirstTimeContacts } from './commands/review.js';
 import { isInitialized, initSchema } from './db/client.js';
 
 const VERSION = '0.0.1';
@@ -86,6 +87,26 @@ program
   .action((options) => {
     ensureInitialized();
     runServe({ port: parseInt(options.port) });
+  });
+
+program
+  .command('review')
+  .description('Review quarantined messages and first-time contacts')
+  .option('--approve <identifier>', 'Approve sender and release messages')
+  .option('--deny <identifier>', 'Block sender and delete messages')
+  .option('-i, --interactive', 'Interactive review mode')
+  .action(async (options) => {
+    ensureInitialized();
+    await runReview(options);
+  });
+
+program
+  .command('blocked')
+  .description('Show recently blocked contacts')
+  .option('-l, --limit <number>', 'Number to show', '20')
+  .action((options) => {
+    ensureInitialized();
+    showFirstTimeContacts(parseInt(options.limit));
   });
 
 function ensureInitialized(): void {

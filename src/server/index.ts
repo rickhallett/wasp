@@ -1,7 +1,13 @@
 import { Hono } from 'hono';
 import { checkContact, listContacts, addContact, removeContact } from '../db/contacts.js';
 import { logDecision, getAuditLog } from '../db/audit.js';
+import { checkRateLimit, type RateLimitConfig } from '../ratelimit.js';
 import type { Platform, TrustLevel } from '../types.js';
+
+const RATE_LIMIT_CONFIG: RateLimitConfig = {
+  windowMs: 60 * 1000,  // 1 minute
+  maxRequests: 100      // 100 checks per minute per IP
+};
 
 export function createServer() {
   const app = new Hono();
@@ -13,6 +19,22 @@ export function createServer() {
 
   // Check if a contact is allowed
   app.post('/check', async (c) => {
+    // Rate limiting by client IP
+    const clientIp = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
+    const rateLimit = checkRateLimit(`check:${clientIp}`, RATE_LIMIT_CONFIG);
+    
+    // Set rate limit headers
+    c.header('X-RateLimit-Limit', String(RATE_LIMIT_CONFIG.maxRequests));
+    c.header('X-RateLimit-Remaining', String(rateLimit.remaining));
+    c.header('X-RateLimit-Reset', String(Math.ceil(rateLimit.resetMs / 1000)));
+    
+    if (!rateLimit.allowed) {
+      return c.json({ 
+        error: 'Rate limit exceeded', 
+        retryAfterMs: rateLimit.resetMs 
+      }, 429);
+    }
+
     const body = await c.req.json();
     const { identifier, platform = 'whatsapp' } = body;
 

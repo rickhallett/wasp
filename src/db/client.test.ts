@@ -36,5 +36,6 @@ describe('db/client', () => {
     const tableNames = tables.map(t => t.name);
     expect(tableNames).toContain('contacts');
     expect(tableNames).toContain('audit_log');
+    expect(tableNames).toContain('quarantine');
   });
 });

@@ -3,10 +3,16 @@ import { existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 
-const DATA_DIR = process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
-const DB_PATH = join(DATA_DIR, 'wasp.db');
+let DATA_DIR = process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
+let DB_PATH = join(DATA_DIR, 'wasp.db');
 
 let db: Database | null = null;
+
+// For testing - reload paths from env
+export function reloadPaths(): void {
+  DATA_DIR = process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
+  DB_PATH = join(DATA_DIR, 'wasp.db');
+}
 
 export function getDataDir(): string {
   return DATA_DIR;
@@ -55,8 +61,20 @@ export function initSchema(): void {
       reason TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS quarantine (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      identifier TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'whatsapp',
+      message_preview TEXT,
+      full_message TEXT,
+      timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+      reviewed INTEGER NOT NULL DEFAULT 0
+    );
+
     CREATE INDEX IF NOT EXISTS idx_contacts_identifier ON contacts(identifier);
     CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_quarantine_identifier ON quarantine(identifier);
+    CREATE INDEX IF NOT EXISTS idx_quarantine_reviewed ON quarantine(reviewed);
   `);
 }
 

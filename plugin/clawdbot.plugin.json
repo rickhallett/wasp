@@ -1,0 +1,47 @@
+{
+  "id": "wasp",
+  "name": "wasp",
+  "version": "0.1.0",
+  "description": "Security whitelist layer - filters messages by sender trust level",
+  "homepage": "https://github.com/rickhallett/wasp",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "dataDir": {
+        "type": "string",
+        "description": "Custom data directory for wasp database"
+      },
+      "defaultAction": {
+        "type": "string",
+        "enum": ["block", "quarantine", "limited"],
+        "default": "block",
+        "description": "Action for unknown contacts: block (drop), quarantine (hold for review), limited (allow read-only)"
+      },
+      "notifySovereign": {
+        "type": "boolean",
+        "default": false,
+        "description": "Notify sovereign contacts when messages are blocked"
+      },
+      "dangerousTools": {
+        "type": "array",
+        "items": { "type": "string" },
+        "default": ["exec", "write", "message", "gateway", "Edit", "Write"],
+        "description": "Tools blocked for limited trust senders"
+      },
+      "safeTools": {
+        "type": "array",
+        "items": { "type": "string" },
+        "default": ["web_search", "memory_search", "Read", "session_status"],
+        "description": "Tools always allowed for limited trust senders"
+      }
+    }
+  },
+  "uiHints": {
+    "dataDir": { "label": "Data Directory", "placeholder": "~/.wasp" },
+    "defaultAction": { "label": "Default Action for Unknown Contacts" },
+    "notifySovereign": { "label": "Notify Sovereign on Block" },
+    "dangerousTools": { "label": "Dangerous Tools (blocked for limited)" },
+    "safeTools": { "label": "Safe Tools (allowed for limited)" }
+  }
+}
