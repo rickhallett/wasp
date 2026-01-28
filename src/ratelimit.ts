@@ -77,8 +77,10 @@ export function clearExpiredEntries(maxAgeMs: number = 5 * 60 * 1000): number {
 }
 
 // Periodic cleanup (every 5 minutes)
-setInterval(() => {
+// Use unref() to prevent keeping the process alive in tests
+const cleanupInterval = setInterval(() => {
   clearExpiredEntries();
 }, 5 * 60 * 1000);
+cleanupInterval.unref();
 
 export { DEFAULT_CONFIG };

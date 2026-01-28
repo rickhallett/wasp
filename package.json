@@ -46,7 +46,16 @@
     "url": "https://github.com/rickhallett/wasp/issues"
   },
   "engines": {
+    "node": ">=22",
     "bun": ">=1.0.0"
+  },
+  "peerDependencies": {
+    "clawdbot": ">=2024.1.0"
+  },
+  "peerDependenciesMeta": {
+    "clawdbot": {
+      "optional": true
+    }
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",

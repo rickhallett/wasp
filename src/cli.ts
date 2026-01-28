@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
+import { createRequire } from 'module';
 import { runInit } from './commands/init.js';
 import { runAdd } from './commands/add.js';
 import { runRemove } from './commands/remove.js';
@@ -11,7 +12,10 @@ import { runServe } from './commands/serve.js';
 import { runReview, showFirstTimeContacts } from './commands/review.js';
 import { isInitialized, initSchema, closeDb } from './db/client.js';
 
-const VERSION = '0.0.1';
+// Import version from package.json (ESM compatible)
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
+const VERSION = pkg.version;
 
 program
   .name('wasp')

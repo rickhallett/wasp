@@ -35,11 +35,23 @@ export function createServer() {
       }, 429);
     }
 
-    const body = await c.req.json();
+    let body: { identifier?: string; platform?: string };
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: 'Invalid JSON body' }, 400);
+    }
+
     const { identifier, platform = 'whatsapp' } = body;
 
     if (!identifier) {
       return c.json({ error: 'identifier is required' }, 400);
+    }
+
+    // Validate platform
+    const validPlatforms = ['whatsapp', 'telegram', 'email', 'discord', 'slack', 'signal', 'webchat'];
+    if (!validPlatforms.includes(platform)) {
+      return c.json({ error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}` }, 400);
     }
 
     const result = checkContact(identifier, platform as Platform);

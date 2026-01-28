@@ -1,5 +1,10 @@
 # wasp
 
+[![npm version](https://img.shields.io/npm/v/%40oceanheartai%2Fwasp)](https://www.npmjs.com/package/@oceanheartai/wasp)
+[![npm last update](https://img.shields.io/npm/last-update/%40oceanheartai%2Fwasp)](https://www.npmjs.com/package/@oceanheartai/wasp)
+[![GitHub created at](https://img.shields.io/github/created-at/rickhallett/wasp)](https://github.com/rickhallett/wasp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 A security whitelist layer for [Moltbot](https://github.com/moltbot/moltbot) and similar agentic systems.
 
 ## The Problem
