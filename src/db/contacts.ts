@@ -1,5 +1,20 @@
 import { getDb } from './client.js';
-import type { Contact, Platform, TrustLevel, CheckResult } from '../types.js';
+import type { Contact, ContactRow, Platform, TrustLevel, CheckResult } from '../types.js';
+
+/**
+ * Map database row to Contact interface.
+ */
+function rowToContact(row: ContactRow): Contact {
+  return {
+    id: row.id,
+    identifier: row.identifier,
+    platform: row.platform as Platform,
+    name: row.name,
+    trust: row.trust as TrustLevel,
+    addedAt: row.added_at,
+    notes: row.notes
+  };
+}
 
 export function addContact(
   identifier: string,
@@ -23,17 +38,13 @@ export function addContact(
   
   // Fetch the inserted/updated row
   const row = db.prepare('SELECT * FROM contacts WHERE identifier = ? AND platform = ?')
-    .get(identifier, platform) as any;
+    .get(identifier, platform) as ContactRow | undefined;
   
-  return {
-    id: row.id,
-    identifier: row.identifier,
-    platform: row.platform as Platform,
-    name: row.name,
-    trust: row.trust as TrustLevel,
-    addedAt: row.added_at,
-    notes: row.notes
-  };
+  if (!row) {
+    throw new Error(`Failed to retrieve contact after insert: ${identifier}`);
+  }
+  
+  return rowToContact(row);
 }
 
 export function removeContact(identifier: string, platform: Platform = 'whatsapp'): boolean {
@@ -46,26 +57,18 @@ export function removeContact(identifier: string, platform: Platform = 'whatsapp
 export function getContact(identifier: string, platform: Platform = 'whatsapp'): Contact | null {
   const db = getDb();
   const stmt = db.prepare('SELECT * FROM contacts WHERE identifier = ? AND platform = ?');
-  const row = stmt.get(identifier, platform) as any;
+  const row = stmt.get(identifier, platform) as ContactRow | undefined;
   
   if (!row) return null;
   
-  return {
-    id: row.id,
-    identifier: row.identifier,
-    platform: row.platform as Platform,
-    name: row.name,
-    trust: row.trust as TrustLevel,
-    addedAt: row.added_at,
-    notes: row.notes
-  };
+  return rowToContact(row);
 }
 
 export function listContacts(platform?: Platform, trust?: TrustLevel): Contact[] {
   const db = getDb();
   
   let query = 'SELECT * FROM contacts WHERE 1=1';
-  const params: any[] = [];
+  const params: (string)[] = [];
   
   if (platform) {
     query += ' AND platform = ?';
@@ -80,17 +83,9 @@ export function listContacts(platform?: Platform, trust?: TrustLevel): Contact[]
   query += ' ORDER BY added_at DESC';
   
   const stmt = db.prepare(query);
-  const rows = stmt.all(...params) as any[];
+  const rows = stmt.all(...params) as ContactRow[];
   
-  return rows.map(row => ({
-    id: row.id,
-    identifier: row.identifier,
-    platform: row.platform as Platform,
-    name: row.name,
-    trust: row.trust as TrustLevel,
-    addedAt: row.added_at,
-    notes: row.notes
-  }));
+  return rows.map(rowToContact);
 }
 
 export function checkContact(identifier: string, platform: Platform = 'whatsapp'): CheckResult {

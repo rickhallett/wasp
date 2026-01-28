@@ -1,10 +1,24 @@
 import { getDb } from './client.js';
-import type { AuditEntry, Platform } from '../types.js';
+import type { AuditEntry, AuditRow, Platform, Decision } from '../types.js';
+
+/**
+ * Map database row to AuditEntry interface.
+ */
+function rowToAuditEntry(row: AuditRow): AuditEntry {
+  return {
+    id: row.id,
+    timestamp: row.timestamp,
+    identifier: row.identifier,
+    platform: row.platform as Platform,
+    decision: row.decision as Decision,
+    reason: row.reason || ''
+  };
+}
 
 export function logDecision(
   identifier: string,
   platform: Platform,
-  decision: 'allow' | 'deny' | 'limited',
+  decision: Decision,
   reason: string
 ): void {
   const db = getDb();
@@ -17,13 +31,13 @@ export function logDecision(
 
 export function getAuditLog(options: {
   limit?: number;
-  decision?: 'allow' | 'deny' | 'limited';
+  decision?: Decision;
   since?: string;
 }): AuditEntry[] {
   const db = getDb();
   
   let query = 'SELECT * FROM audit_log WHERE 1=1';
-  const params: any[] = [];
+  const params: (string | number)[] = [];
   
   if (options.decision) {
     query += ' AND decision = ?';
@@ -43,16 +57,9 @@ export function getAuditLog(options: {
   }
   
   const stmt = db.prepare(query);
-  const rows = stmt.all(...params) as any[];
+  const rows = stmt.all(...params) as AuditRow[];
   
-  return rows.map(row => ({
-    id: row.id,
-    timestamp: row.timestamp,
-    identifier: row.identifier,
-    platform: row.platform as Platform,
-    decision: row.decision as 'allow' | 'deny' | 'limited',
-    reason: row.reason
-  }));
+  return rows.map(rowToAuditEntry);
 }
 
 export function clearAuditLog(olderThanDays: number = 30): number {

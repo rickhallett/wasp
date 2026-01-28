@@ -1,14 +1,19 @@
 import { getDb } from './client.js';
-import type { Platform } from '../types.js';
+import type { Platform, QuarantinedMessage, QuarantineRow } from '../types.js';
 
-export interface QuarantinedMessage {
-  id: number;
-  identifier: string;
-  platform: Platform;
-  messagePreview: string;
-  fullMessage: string;
-  timestamp: string;
-  reviewed: boolean;
+/**
+ * Map database row to QuarantinedMessage interface.
+ */
+function rowToQuarantinedMessage(row: QuarantineRow): QuarantinedMessage {
+  return {
+    id: row.id,
+    identifier: row.identifier,
+    platform: row.platform as Platform,
+    messagePreview: row.message_preview || '',
+    fullMessage: row.full_message || '',
+    timestamp: row.timestamp,
+    reviewed: !!row.reviewed
+  };
 }
 
 export function quarantineMessage(
@@ -28,7 +33,6 @@ export function quarantineMessage(
 }
 
 export function getQuarantined(limit: number = 50): QuarantinedMessage[] {
-  
   const db = getDb();
   
   const stmt = db.prepare(`
@@ -37,24 +41,15 @@ export function getQuarantined(limit: number = 50): QuarantinedMessage[] {
     ORDER BY timestamp DESC 
     LIMIT ?
   `);
-  const rows = stmt.all(limit) as any[];
+  const rows = stmt.all(limit) as QuarantineRow[];
   
-  return rows.map(row => ({
-    id: row.id,
-    identifier: row.identifier,
-    platform: row.platform as Platform,
-    messagePreview: row.message_preview,
-    fullMessage: row.full_message,
-    timestamp: row.timestamp,
-    reviewed: !!row.reviewed
-  }));
+  return rows.map(rowToQuarantinedMessage);
 }
 
 export function getQuarantinedByIdentifier(
   identifier: string,
   platform: Platform = 'whatsapp'
 ): QuarantinedMessage[] {
-  
   const db = getDb();
   
   const stmt = db.prepare(`
@@ -62,17 +57,9 @@ export function getQuarantinedByIdentifier(
     WHERE identifier = ? AND platform = ? AND reviewed = 0
     ORDER BY timestamp ASC
   `);
-  const rows = stmt.all(identifier, platform) as any[];
+  const rows = stmt.all(identifier, platform) as QuarantineRow[];
   
-  return rows.map(row => ({
-    id: row.id,
-    identifier: row.identifier,
-    platform: row.platform as Platform,
-    messagePreview: row.message_preview,
-    fullMessage: row.full_message,
-    timestamp: row.timestamp,
-    reviewed: !!row.reviewed
-  }));
+  return rows.map(rowToQuarantinedMessage);
 }
 
 export function releaseQuarantined(identifier: string, platform: Platform = 'whatsapp'): QuarantinedMessage[] {
@@ -91,7 +78,6 @@ export function releaseQuarantined(identifier: string, platform: Platform = 'wha
 }
 
 export function deleteQuarantined(identifier: string, platform: Platform = 'whatsapp'): number {
-  
   const db = getDb();
   
   const stmt = db.prepare(`
@@ -102,7 +88,6 @@ export function deleteQuarantined(identifier: string, platform: Platform = 'what
 }
 
 export function clearOldQuarantine(olderThanDays: number = 30): number {
-  
   const db = getDb();
   
   const stmt = db.prepare(`
