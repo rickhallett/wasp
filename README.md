@@ -86,6 +86,38 @@ wasp check "+441234567890"
 
 Unknown contacts default to `blocked`.
 
+## Configuration
+
+### Data Directory
+
+By default, wasp stores its SQLite database in `~/.wasp/`. Override programmatically:
+
+```typescript
+import { setDataDir, initSchema } from '@oceanheartai/wasp';
+
+setDataDir('/custom/path');  // Call BEFORE initSchema()
+initSchema();
+```
+
+Or via environment variable: `WASP_DATA_DIR=/custom/path`
+
+### API Authentication
+
+Admin endpoints (`/contacts`, `/audit`) require authentication when accessed remotely:
+
+```bash
+# Set token for HTTP API
+export WASP_API_TOKEN="your-secret-token"
+wasp serve --port 3847
+```
+
+Requests must include the token:
+```bash
+curl -H "Authorization: Bearer your-secret-token" http://localhost:3847/contacts
+```
+
+Localhost requests bypass authentication by default.
+
 ---
 
 ## Moltbot Integration
@@ -298,13 +330,15 @@ wasp list                    # List all contacts
 wasp check <id>              # Check if allowed (exit code 0/1)
 wasp log                     # View audit log
 wasp serve                   # Start HTTP server
+wasp review                  # Review quarantined messages and first-time contacts
+wasp blocked                 # Show recently blocked contacts
 ```
 
 ## Status
 
-**v0.0.x** — Early development. The plugin integration is planned for v0.1.
+**v0.2.1** — Production-ready for Wave 1 deployment.
 
-This release stakes out the concept and proves the pattern. The core whitelist logic works; Moltbot plugin integration is next.
+Core whitelist logic, Moltbot plugin integration, and HTTP API are all implemented and tested. Session state isolation ensures safe concurrent operation. 90 tests, 210+ assertions.
 
 ## Requirements
 
@@ -316,12 +350,14 @@ This release stakes out the concept and proves the pattern. The core whitelist l
 - [x] Core whitelist logic
 - [x] CLI interface
 - [x] HTTP sidecar
-- [ ] Moltbot plugin package
-- [ ] Tool-call interception for `limited` trust
+- [x] Moltbot plugin package
+- [x] Tool-call interception for `limited` trust
+- [x] Rate limiting (100 requests/minute per IP)
+- [x] Interactive review mode (`wasp review`)
+- [x] Message quarantine system
+- [x] Authentication for admin endpoints
+- [x] Session state isolation (concurrent-safe)
 - [ ] Encrypted storage
-- [ ] Rate limiting
-- [ ] Interactive review mode — flip through first-time contacts, approve/deny/defer
-- [ ] Message quarantine — hold messages from unknown senders; deliver if later approved
 - [ ] Web UI for whitelist management
 
 ## Security Model
