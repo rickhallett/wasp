@@ -8,7 +8,7 @@ const version = pkg.version;
 await Bun.build({
   entrypoints: ['./src/cli.ts'],
   outdir: './dist',
-  target: 'bun',
+  target: 'node',
   minify: true,
   define: {
     __VERSION__: JSON.stringify(version),
