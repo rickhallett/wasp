@@ -19,6 +19,16 @@
 [![GitHub created at](https://img.shields.io/github/created-at/rickhallett/wasp)](https://github.com/rickhallett/wasp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
+<br />
+
+<p align="center">
+  <code>prompt injection?</code><br />
+  <code><strong>eat shit.</strong></code><br />
+  <code>— wasp</code>
+</p>
+
+<br />
+
 A security whitelist layer for [Moltbot](https://github.com/moltbot/moltbot) and similar agentic systems.
 
 ## The Problem
