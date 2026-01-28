@@ -1,0 +1,99 @@
+#!/usr/bin/env node
+
+import { program } from 'commander';
+import { runInit } from './commands/init.js';
+import { runAdd } from './commands/add.js';
+import { runRemove } from './commands/remove.js';
+import { runList } from './commands/list.js';
+import { runCheck } from './commands/check.js';
+import { runLog } from './commands/log.js';
+import { runServe } from './commands/serve.js';
+import { isInitialized, initSchema } from './db/client.js';
+
+const VERSION = '0.0.1';
+
+program
+  .name('wasp')
+  .description('Security whitelist layer for Moltbot and agentic systems')
+  .version(VERSION);
+
+program
+  .command('init')
+  .description('Initialize wasp database')
+  .option('-f, --force', 'Reinitialize even if already initialized')
+  .action((options) => {
+    runInit(options.force);
+  });
+
+program
+  .command('add <identifier>')
+  .description('Add a contact to the whitelist')
+  .option('-p, --platform <platform>', 'Platform (whatsapp, telegram, email, discord, slack, signal)', 'whatsapp')
+  .option('-t, --trust <level>', 'Trust level (sovereign, trusted, limited)', 'trusted')
+  .option('-n, --name <name>', 'Contact name')
+  .option('--notes <notes>', 'Notes about this contact')
+  .action((identifier, options) => {
+    ensureInitialized();
+    runAdd(identifier, options);
+  });
+
+program
+  .command('remove <identifier>')
+  .description('Remove a contact from the whitelist')
+  .option('-p, --platform <platform>', 'Platform', 'whatsapp')
+  .action((identifier, options) => {
+    ensureInitialized();
+    runRemove(identifier, options.platform);
+  });
+
+program
+  .command('list')
+  .description('List all contacts')
+  .option('-p, --platform <platform>', 'Filter by platform')
+  .option('-t, --trust <level>', 'Filter by trust level')
+  .option('-j, --json', 'Output as JSON')
+  .action((options) => {
+    ensureInitialized();
+    runList(options);
+  });
+
+program
+  .command('check <identifier>')
+  .description('Check if a contact is allowed')
+  .option('-p, --platform <platform>', 'Platform', 'whatsapp')
+  .option('-j, --json', 'Output as JSON')
+  .option('-q, --quiet', 'Exit code only, no output')
+  .action((identifier, options) => {
+    ensureInitialized();
+    runCheck(identifier, options);
+  });
+
+program
+  .command('log')
+  .description('View audit log')
+  .option('-l, --limit <number>', 'Number of entries to show', '50')
+  .option('-d, --denied', 'Show only denied entries')
+  .option('-j, --json', 'Output as JSON')
+  .action((options) => {
+    ensureInitialized();
+    runLog({ ...options, limit: parseInt(options.limit) });
+  });
+
+program
+  .command('serve')
+  .description('Start HTTP server for Moltbot integration')
+  .option('-p, --port <number>', 'Port to listen on', '3847')
+  .action((options) => {
+    ensureInitialized();
+    runServe({ port: parseInt(options.port) });
+  });
+
+function ensureInitialized(): void {
+  if (!isInitialized()) {
+    console.log('wasp is not initialized. Initializing now...');
+    initSchema();
+    console.log('');
+  }
+}
+
+program.parse();
