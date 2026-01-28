@@ -97,6 +97,11 @@ if (!response.ok || !(await response.json()).allowed) {
 
 This project exists to stake out the concept and prove the pattern. Contributions welcome once we hit v0.1.
 
+## Requirements
+
+- [Bun](https://bun.sh) >= 1.0.0
+- SQLite3 (system library)
+
 ## Philosophy
 
 Small, protective, stings intruders.
