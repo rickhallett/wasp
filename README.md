@@ -312,8 +312,11 @@ This release stakes out the concept and proves the pattern. The core whitelist l
 - [x] CLI interface
 - [x] HTTP sidecar
 - [ ] Moltbot plugin package
+- [ ] Tool-call interception for `limited` trust
 - [ ] Encrypted storage
 - [ ] Rate limiting
+- [ ] Interactive review mode — flip through first-time contacts, approve/deny/defer
+- [ ] Message quarantine — hold messages from unknown senders; deliver if later approved
 - [ ] Web UI for whitelist management
 
 ## Security Model
@@ -390,4 +393,4 @@ MIT
 
 ---
 
-Built by [Kai Hallett](https://oceanheart.ai) and HAL.
+Built by Kai & HAL 🔴󠅨󠅡󠅬󠅯󠅧󠅥󠅮󠅥󠅳󠅩󠅳󠄭󠄲󠄰󠄲󠄶󠄭󠄰󠄱󠄭󠄲󠄸󠅔󠄱󠄳󠄺󠄰󠄸󠄺󠄵󠄶󠅚
