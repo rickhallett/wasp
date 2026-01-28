@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { createRequire } from 'node:module';
 import { program } from 'commander';
 import { runAdd } from './commands/add.js';
 import { runCheck } from './commands/check.js';
@@ -12,10 +11,9 @@ import { runReview, showFirstTimeContacts } from './commands/review.js';
 import { runServe } from './commands/serve.js';
 import { closeDb, initSchema, isInitialized } from './db/client.js';
 
-// Import version from package.json (ESM compatible)
-const require = createRequire(import.meta.url);
-const pkg = require('../package.json');
-const VERSION = pkg.version;
+// Version injected at build time via --define
+declare const __VERSION__: string;
+const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : '0.0.0-dev';
 
 program
   .name('wasp')
