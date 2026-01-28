@@ -77,14 +77,14 @@ describe('Simulated User Scenarios', () => {
         from: senderId,
         content: 'test message',
         metadata: { senderE164: senderId }
-      }, { channelId: platform });
+      }, { channelId: platform, sessionKey: 'sim-session' });
     };
     
     triggerTool = async (toolName: string) => {
       return await api._triggerHook('before_tool_call', {
         name: toolName,
         params: {}
-      }, {});
+      }, { sessionKey: 'sim-session' });
     };
   });
 
@@ -97,7 +97,7 @@ describe('Simulated User Scenarios', () => {
 
   // Reset state between tests
   const resetState = async () => {
-    await api._triggerHook('agent_end', {}, {});
+    await api._triggerHook('agent_end', {}, { sessionKey: 'sim-session' });
     api._clearLogs();
   };
 
@@ -341,11 +341,78 @@ describe('Simulated User Scenarios', () => {
       expect(result).toBeUndefined();
       
       // Session ends
-      await api._triggerHook('agent_end', {}, {});
+      await api._triggerHook('agent_end', {}, { sessionKey: 'sim-session' });
       
       // No message context - dangerous tools blocked
       result = await triggerTool('exec');
       expect(result?.block).toBe(true);
+    });
+  });
+
+  describe('Scenario: Concurrent Session Isolation', () => {
+    it('different sessions have isolated trust states', async () => {
+      // Session A: Sovereign user
+      await api._triggerHook('message_received', {
+        from: '+44-sovereign',
+        content: 'Session A message',
+        metadata: { senderE164: '+44-sovereign' }
+      }, { channelId: 'whatsapp', sessionKey: 'session-A' });
+      
+      // Session B: Unknown user (concurrent)
+      await api._triggerHook('message_received', {
+        from: '+44-unknown',
+        content: 'Session B message',
+        metadata: { senderE164: '+44-unknown' }
+      }, { channelId: 'whatsapp', sessionKey: 'session-B' });
+      
+      // Session A tool call should use Session A's trust (sovereign)
+      const resultA = await api._triggerHook('before_tool_call', {
+        name: 'exec'
+      }, { sessionKey: 'session-A' });
+      expect(resultA).toBeUndefined(); // Allowed for sovereign
+      
+      // Session B tool call should use Session B's trust (unknown)
+      const resultB = await api._triggerHook('before_tool_call', {
+        name: 'exec'
+      }, { sessionKey: 'session-B' });
+      expect(resultB?.block).toBe(true); // Blocked for unknown
+      
+      // Verify isolation: Session B didn't affect Session A
+      const resultA2 = await api._triggerHook('before_tool_call', {
+        name: 'exec'
+      }, { sessionKey: 'session-A' });
+      expect(resultA2).toBeUndefined(); // Still allowed
+    });
+
+    it('session state cleanup does not affect other sessions', async () => {
+      // Session C: Trusted user
+      await api._triggerHook('message_received', {
+        from: '+44-trusted',
+        content: 'Session C',
+        metadata: { senderE164: '+44-trusted' }
+      }, { channelId: 'whatsapp', sessionKey: 'session-C' });
+      
+      // Session D: Sovereign user
+      await api._triggerHook('message_received', {
+        from: '+44-sovereign',
+        content: 'Session D',
+        metadata: { senderE164: '+44-sovereign' }
+      }, { channelId: 'whatsapp', sessionKey: 'session-D' });
+      
+      // End Session C
+      await api._triggerHook('agent_end', {}, { sessionKey: 'session-C' });
+      
+      // Session D should still work (isolated)
+      const resultD = await api._triggerHook('before_tool_call', {
+        name: 'exec'
+      }, { sessionKey: 'session-D' });
+      expect(resultD).toBeUndefined(); // Still allowed
+      
+      // Session C is now cleared (unknown state)
+      const resultC = await api._triggerHook('before_tool_call', {
+        name: 'exec'
+      }, { sessionKey: 'session-C' });
+      expect(resultC?.block).toBe(true); // Blocked after cleanup
     });
   });
 });

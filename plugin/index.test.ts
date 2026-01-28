@@ -84,12 +84,12 @@ describe('plugin', () => {
     const { default: register } = await import('./index.js');
     register(api as any);
     
-    // Simulate message_received
+    // Simulate message_received with sessionKey for isolation
     await api._triggerHook('message_received', {
       from: '+441111111111',
       content: 'Hello',
       metadata: { senderE164: '+441111111111' }
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'test-session-1' });
     
     // Should log as allowed
     expect(api._logs.some(l => l.msg.includes('ALLOWED') || l.level === 'debug')).toBe(true);
@@ -107,7 +107,7 @@ describe('plugin', () => {
       from: '+449999999999',
       content: 'Malicious message',
       metadata: { senderE164: '+449999999999' }
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'test-session' });
     
     // Should log as audit/denied
     expect(api._logs.some(l => l.msg.includes('AUDIT') || l.msg.includes('+449999999999'))).toBe(true);
@@ -129,13 +129,13 @@ describe('plugin', () => {
       from: '+448888888888',
       content: 'Try to exec',
       metadata: { senderE164: '+448888888888' }
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'test-session' });
     
     // Now try to call a dangerous tool
     const result = await api._triggerHook('before_tool_call', {
       name: 'exec',
       params: { command: 'rm -rf /' }
-    }, {});
+    }, { sessionKey: 'test-session' });
     
     expect(result).toBeDefined();
     expect(result.block).toBe(true);
@@ -153,13 +153,13 @@ describe('plugin', () => {
       from: '+447777777777',
       content: 'Search something',
       metadata: { senderE164: '+447777777777' }
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'test-session' });
     
     // Try a safe tool
     const result = await api._triggerHook('before_tool_call', {
       name: 'web_search',
       params: { query: 'weather' }
-    }, {});
+    }, { sessionKey: 'test-session' });
     
     // Should not block
     expect(result).toBeUndefined();
@@ -178,13 +178,13 @@ describe('plugin', () => {
       from: '+442222222222',
       content: 'I am sovereign',
       metadata: { senderE164: '+442222222222' }
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'test-session' });
     
     // Sovereign should be able to use exec
     const result = await api._triggerHook('before_tool_call', {
       name: 'exec',
       params: { command: 'ls' }
-    }, {});
+    }, { sessionKey: 'test-session' });
     
     // Should not block
     expect(result).toBeUndefined();
@@ -203,23 +203,23 @@ describe('plugin', () => {
       from: '+443333333333',
       content: 'hello',
       metadata: { senderE164: '+443333333333' }
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'test-session' });
     
     // exec should be allowed for sovereign
     const beforeClear = await api._triggerHook('before_tool_call', {
       name: 'exec',
       params: {}
-    }, {});
+    }, { sessionKey: 'test-session' });
     expect(beforeClear).toBeUndefined(); // Allowed
     
     // Clear state
-    await api._triggerHook('agent_end', {}, {});
+    await api._triggerHook('agent_end', {}, { sessionKey: 'test-session' });
     
     // After clear, trust is null (unknown), so exec should be blocked
     const afterClear = await api._triggerHook('before_tool_call', {
       name: 'exec',
       params: {}
-    }, {});
+    }, { sessionKey: 'test-session' });
     expect(afterClear).toBeDefined();
     expect(afterClear.block).toBe(true);
   });

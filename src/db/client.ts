@@ -3,44 +3,68 @@ import { existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 
-let DATA_DIR = process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
-let DB_PATH = join(DATA_DIR, 'wasp.db');
+// Configuration - can be set explicitly or via env
+let configuredDataDir: string | null = null;
+
+function getEffectiveDataDir(): string {
+  return configuredDataDir || process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
+}
+
+function getEffectiveDbPath(): string {
+  return join(getEffectiveDataDir(), 'wasp.db');
+}
 
 let db: DbAdapter | null = null;
 
-// For testing - reload paths from env
+/**
+ * Configure the data directory explicitly.
+ * Call this before any database operations if you need a custom location.
+ * This avoids mutating process.env.
+ */
+export function setDataDir(dataDir: string): void {
+  if (db) {
+    throw new Error('Cannot change data directory after database is initialized. Call closeDb() first.');
+  }
+  configuredDataDir = dataDir;
+}
+
+/**
+ * For testing - reload paths from env (resets explicit config)
+ */
 export function reloadPaths(): void {
-  DATA_DIR = process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
-  DB_PATH = join(DATA_DIR, 'wasp.db');
+  configuredDataDir = null;
 }
 
 export function getDataDir(): string {
-  return DATA_DIR;
+  return getEffectiveDataDir();
 }
 
 export function getDbPath(): string {
-  return DB_PATH;
+  return getEffectiveDbPath();
 }
 
 export function isInitialized(): boolean {
-  return existsSync(DB_PATH);
+  return existsSync(getEffectiveDbPath());
 }
 
 export function getDb(): DbAdapter {
   if (!db) {
-    if (!existsSync(DATA_DIR)) {
-      mkdirSync(DATA_DIR, { recursive: true });
+    const dataDir = getEffectiveDataDir();
+    const dbPath = getEffectiveDbPath();
+    
+    if (!existsSync(dataDir)) {
+      mkdirSync(dataDir, { recursive: true });
     }
-    db = createDatabase(DB_PATH);
+    db = createDatabase(dbPath);
     db.exec('PRAGMA journal_mode = WAL');
   }
   return db;
 }
 
 export function initSchema(): void {
-  const db = getDb();
+  const database = getDb();
   
-  db.exec(`
+  database.exec(`
     CREATE TABLE IF NOT EXISTS contacts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       identifier TEXT NOT NULL,
@@ -85,10 +109,13 @@ export function closeDb(): void {
   }
 }
 
-// For testing - reset in-memory state
+/**
+ * For testing - reset in-memory state
+ */
 export function resetCache(): void {
   if (db) {
     db.close();
     db = null;
   }
+  configuredDataDir = null;
 }

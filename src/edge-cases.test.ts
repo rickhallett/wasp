@@ -353,7 +353,7 @@ describe('plugin - edge cases', () => {
       from: '',
       content: 'hello',
       metadata: {}
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'edge-session' });
     
     // Should not crash, just log debug
     expect(api._logs.some(l => l.msg.includes('No senderId'))).toBe(true);
@@ -369,7 +369,7 @@ describe('plugin - edge cases', () => {
       from: '+449999999999',
       content: 'test',
       metadata: { senderE164: '+449999999999' }
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'edge-session' });
     
     // Tool call with no name
     const result = await api._triggerHook('before_tool_call', {
@@ -392,11 +392,11 @@ describe('plugin - edge cases', () => {
     // Rapid messages
     await api._triggerHook('message_received', {
       metadata: { senderE164: '+441111111111' }
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'edge-session' });
     
     await api._triggerHook('message_received', {
       metadata: { senderE164: '+449999999999' }
-    }, { channelId: 'whatsapp' });
+    }, { channelId: 'whatsapp', sessionKey: 'edge-session' });
     
     // Last sender should be the untrusted one
     const result = await api._triggerHook('before_tool_call', {

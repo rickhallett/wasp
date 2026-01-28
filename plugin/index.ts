@@ -6,7 +6,7 @@
  */
 
 import { checkContact, addContact, listContacts, removeContact } from '../src/db/contacts.js';
-import { initSchema } from '../src/db/client.js';
+import { initSchema, setDataDir } from '../src/db/client.js';
 import { logDecision, getAuditLog } from '../src/db/audit.js';
 import { quarantineMessage, getQuarantined, releaseQuarantined } from '../src/db/quarantine.js';
 import type { Platform, TrustLevel } from '../src/types.js';
@@ -40,17 +40,37 @@ interface PluginApi {
   }) => void;
 }
 
-// Track trust level for the current turn (used by tool interception)
-let currentTurnTrust: TrustLevel | null = null;
-let currentTurnSender: string | null = null;
+// Session-keyed state for concurrent safety
+// Maps sessionKey -> { trust, sender } for the current turn
+interface TurnState {
+  trust: TrustLevel | null;
+  sender: string | null;
+}
+const sessionState = new Map<string, TurnState>();
+
+// Get or create session state
+function getSessionState(sessionKey: string): TurnState {
+  if (!sessionState.has(sessionKey)) {
+    sessionState.set(sessionKey, { trust: null, sender: null });
+  }
+  return sessionState.get(sessionKey)!;
+}
+
+// Clear session state
+function clearSessionState(sessionKey: string): void {
+  sessionState.delete(sessionKey);
+}
+
+// Fallback session key when context doesn't provide one
+const DEFAULT_SESSION = '__default__';
 
 export default function register(api: PluginApi) {
   // pluginConfig is our plugin's config from plugins.entries.wasp.config
   const config: WaspConfig = (api as any).pluginConfig || {};
   
-  // Set custom data dir if configured
+  // Set custom data dir if configured (without mutating process.env)
   if (config.dataDir) {
-    process.env.WASP_DATA_DIR = config.dataDir;
+    setDataDir(config.dataDir);
   }
   
   // Initialize database
@@ -76,6 +96,9 @@ export default function register(api: PluginApi) {
     
     const senderId = event.metadata?.senderE164 || event.metadata?.senderId || event.from;
     const channel = (ctx?.channelId || 'whatsapp') as Platform;
+    
+    // Get session key from context for concurrent safety
+    const sessionKey = ctx?.sessionKey || ctx?.conversationId || DEFAULT_SESSION;
     
     if (!senderId) {
       api.logger.debug('[wasp] No senderId in message');
@@ -103,9 +126,10 @@ export default function register(api: PluginApi) {
       api.logger.debug(`[wasp] ALLOWED: ${senderId} (${result.trust})`);
     }
 
-    // Store trust level for tool interception
-    currentTurnTrust = result.trust;
-    currentTurnSender = senderId;
+    // Store trust level in session-keyed state for tool interception
+    const state = getSessionState(sessionKey);
+    state.trust = result.trust;
+    state.sender = senderId;
   });
 
   // ============================================
@@ -116,8 +140,14 @@ export default function register(api: PluginApi) {
   api.on('before_tool_call', async (event: any, ctx: any) => {
     const toolName = event.name || event.toolName;
     
+    // Get session key from context for concurrent safety
+    const sessionKey = ctx?.sessionKey || ctx?.conversationId || DEFAULT_SESSION;
+    const state = getSessionState(sessionKey);
+    const trust = state.trust;
+    const sender = state.sender;
+    
     // Allow all tools for trusted/sovereign
-    if (currentTurnTrust === 'trusted' || currentTurnTrust === 'sovereign') {
+    if (trust === 'trusted' || trust === 'sovereign') {
       return undefined; // Don't modify
     }
 
@@ -130,7 +160,7 @@ export default function register(api: PluginApi) {
 
     // Block dangerous tools
     if (dangerousTools.includes(toolName)) {
-      api.logger.warn(`[wasp] BLOCKED tool ${toolName} for sender ${currentTurnSender} (trust: ${currentTurnTrust || 'unknown'})`);
+      api.logger.warn(`[wasp] BLOCKED tool ${toolName} for sender ${sender} (trust: ${trust || 'unknown'})`);
       return { 
         block: true, 
         blockReason: `wasp: tool ${toolName} blocked for untrusted sender` 
@@ -144,11 +174,11 @@ export default function register(api: PluginApi) {
 
   // ============================================
   // Hook: agent_end
-  // Clear turn state
+  // Clear turn state for the session
   // ============================================
-  api.on('agent_end', async () => {
-    currentTurnTrust = null;
-    currentTurnSender = null;
+  api.on('agent_end', async (event: any, ctx: any) => {
+    const sessionKey = ctx?.sessionKey || ctx?.conversationId || DEFAULT_SESSION;
+    clearSessionState(sessionKey);
   });
 
   // ============================================

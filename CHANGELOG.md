@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-01-28
+
+### Fixed
+- **[BLOCKER] Session-keyed state management** - Trust state is now stored per-session using `Map<SessionKey, TurnState>` instead of module-level globals. This ensures concurrent sessions have isolated trust states and prevents race conditions.
+- **[NIT] Removed process.env mutation** - Plugin now uses explicit `setDataDir()` function instead of mutating `process.env.WASP_DATA_DIR`.
+
+### Added  
+- Concurrent session isolation tests (2 new tests)
+- `setDataDir()` function in db/client.ts for explicit configuration
+
+### Changed
+- Plugin hooks now extract `sessionKey` from context for state isolation
+- `agent_end` properly clears only the specific session's state
+
 ## [0.2.0] - 2026-01-28
 
 ### Added
