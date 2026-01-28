@@ -1,8 +1,12 @@
+import { serve as nodeServe } from '@hono/node-server';
 import { Hono } from 'hono';
 import { getAuditLog, logDecision } from '../db/audit.js';
 import { addContact, checkContact, listContacts, removeContact } from '../db/contacts.js';
 import { checkRateLimit, type RateLimitConfig } from '../ratelimit.js';
 import type { Platform, TrustLevel } from '../types.js';
+
+// Detect runtime
+const isBun = typeof globalThis.Bun !== 'undefined';
 
 const RATE_LIMIT_CONFIG: RateLimitConfig = {
   windowMs: 60 * 1000, // 1 minute
@@ -264,8 +268,17 @@ export function startServer(port: number = 3847): void {
     console.log('Authentication: Localhost-only (set WASP_API_TOKEN for remote access)');
   }
 
-  Bun.serve({
-    port,
-    fetch: app.fetch,
-  });
+  if (isBun) {
+    // Bun runtime
+    Bun.serve({
+      port,
+      fetch: app.fetch,
+    });
+  } else {
+    // Node.js runtime
+    nodeServe({
+      port,
+      fetch: app.fetch,
+    });
+  }
 }
