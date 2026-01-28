@@ -31,3 +31,4 @@ npm-debug.log*
 # Environment
 .env
 .env.local
+repomix-output.xml
