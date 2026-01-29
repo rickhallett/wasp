@@ -448,6 +448,28 @@ The `limited` level is the interesting one: the agent can *see* and *think about
 
 ---
 
+## What This Solves (and What It Doesn't)
+
+### Fair Critiques
+
+| Critique | Our Response |
+|----------|--------------|
+| "Whitelist doesn't scale for public-facing agents" | Correct. wasp is designed for personal/team agents with known contacts, not customer support bots serving anonymous users. |
+| "Compromised trusted contacts still have full access" | True. If a trusted account is hijacked, the attacker inherits that trust. wasp is one layer, not a complete solution. Defense in depth. |
+| "Limited trust is leaky — LLM can still exfiltrate data in responses" | Valid concern. Output filtering is on the roadmap. Today, `limited` restricts tools, not responses. |
+| "Hardcoded tool lists are inflexible" | Fair. Config-driven lists are planned. We chose secure defaults over footgun flexibility for v1. |
+
+### Misconceptions
+
+| Critique | Reality |
+|----------|---------|
+| "It's just a whitelist, trivial" | The whitelist is table stakes. The real value is tool-call interception — blocking actions *after* the LLM decides but *before* execution. That's code-enforced, not prompt-dependent. |
+| "Doesn't solve prompt injection" | Nothing fully solves prompt injection. wasp reduces attack surface by blocking untrusted input before it reaches the context window. |
+| "Not enterprise-ready" | It's v0.2 for developers and tinkerers. Enterprise wasn't the target. See [waasp](https://getwasp.xyz/waasp) for the commercial path. |
+| "Just use Auth0" | Auth0 handles human authentication (who is this user?). wasp handles agent authorization (what can this sender make my agent do?). Different problems. |
+
+---
+
 ## Philosophy
 
 Small, protective, stings intruders.
