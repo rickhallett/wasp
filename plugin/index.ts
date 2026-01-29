@@ -9,6 +9,7 @@ import { checkContact, addContact, listContacts, removeContact } from '../src/db
 import { initSchema, setDataDir } from '../src/db/client.js';
 import { logDecision, getAuditLog } from '../src/db/audit.js';
 import { quarantineMessage, getQuarantined, releaseQuarantined } from '../src/db/quarantine.js';
+import { logger } from '../src/logger.js';
 import type { Platform, TrustLevel } from '../src/types.js';
 
 interface WaspConfig {
@@ -108,9 +109,11 @@ export default function register(api: PluginApi) {
     
     if (!senderId) {
       api.logger.debug('[wasp] No senderId in message');
+      logger.plugin('message_received', { error: 'no senderId' });
       return;
     }
 
+    logger.plugin('message_received', { senderId, channel, sessionKey });
     const result = checkContact(senderId, channel);
     
     // Log the decision
@@ -119,6 +122,7 @@ export default function register(api: PluginApi) {
 
     if (!result.allowed) {
       api.logger.info(`[wasp] AUDIT: ${senderId} (${channel}) - ${result.reason}`);
+      logger.block(senderId, result.reason);
       
       if (defaultAction === 'quarantine') {
         const messageText = event.content || '';
@@ -161,12 +165,14 @@ export default function register(api: PluginApi) {
     // Allow safe tools
     if (safeTools.includes(toolName)) {
       api.logger.debug(`[wasp] Tool ${toolName} allowed (safe list)`);
+      logger.tool(toolName, 'allow', { reason: 'safe list', sender, trust });
       return undefined;
     }
 
     // Block dangerous tools
     if (dangerousTools.includes(toolName)) {
       api.logger.warn(`[wasp] BLOCKED tool ${toolName} for sender ${sender} (trust: ${trust || 'unknown'})`);
+      logger.tool(toolName, 'block', { reason: 'dangerous tool', sender, trust });
       return { 
         block: true, 
         blockReason: `wasp: tool ${toolName} blocked for untrusted sender` 
@@ -175,6 +181,7 @@ export default function register(api: PluginApi) {
 
     // Default: allow unknown tools (not in either list)
     api.logger.debug(`[wasp] Tool ${toolName} allowed (not in dangerous list)`);
+    logger.tool(toolName, 'allow', { reason: 'not in dangerous list', sender, trust });
     return undefined;
   });
 

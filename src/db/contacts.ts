@@ -1,5 +1,6 @@
 import type { CheckResult, Contact, ContactRow, Platform, TrustLevel } from '../types.js';
 import { getDb } from './client.js';
+import { logger } from '../logger.js';
 
 /**
  * Map database row to Contact interface.
@@ -45,6 +46,7 @@ export function addContact(
     throw new Error(`Failed to retrieve contact after insert: ${identifier}`);
   }
 
+  logger.add(identifier, trust);
   return rowToContact(row);
 }
 
@@ -52,6 +54,9 @@ export function removeContact(identifier: string, platform: Platform = 'whatsapp
   const db = getDb();
   const stmt = db.prepare('DELETE FROM contacts WHERE identifier = ? AND platform = ?');
   const result = stmt.run(identifier, platform);
+  if (result.changes > 0) {
+    logger.remove(identifier);
+  }
   return result.changes > 0;
 }
 
@@ -93,29 +98,35 @@ export function checkContact(identifier: string, platform: Platform = 'whatsapp'
   const contact = getContact(identifier, platform);
 
   if (!contact) {
-    return {
+    const result = {
       allowed: false,
       trust: null,
       name: null,
       reason: 'Contact not in whitelist',
     };
+    logger.check(identifier, 'DENIED', { platform, reason: result.reason });
+    return result;
   }
 
   if (contact.trust === 'limited') {
-    return {
+    const result = {
       allowed: true,
-      trust: 'limited',
+      trust: 'limited' as const,
       name: contact.name,
       reason: 'Limited trust - agent may view but should not act',
     };
+    logger.check(identifier, 'LIMITED', { platform, trust: result.trust, name: result.name });
+    return result;
   }
 
-  return {
+  const result = {
     allowed: true,
     trust: contact.trust,
     name: contact.name,
     reason: 'Contact is trusted',
   };
+  logger.check(identifier, 'ALLOWED', { platform, trust: result.trust, name: result.name });
+  return result;
 }
 
 export function updateTrust(identifier: string, platform: Platform, trust: TrustLevel): boolean {
