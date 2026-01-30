@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Signature enforcement hook** (`before_message_send`) - Ensures outbound WhatsApp messages from HAL include the 🔴 signature so recipients can distinguish AI-generated messages from human ones
+  - New hook: `before_message_send` fires before outbound messages
+  - Config option: `signatureEnforcement` with `enabled`, `signature`, `action`, `channels`
+  - Two modes: `block` (reject unsigned messages) or `append` (auto-add signature)
+  - Only applies to agent messages, not forwarded user content
+  - Prevents double-append if signature already present
+  - New module: `src/signature.ts` with comprehensive tests
+
 ## [0.2.1] - 2026-01-28
 
 ### Fixed

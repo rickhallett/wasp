@@ -223,4 +223,195 @@ describe('plugin', () => {
     expect(afterClear).toBeDefined();
     expect(afterClear.block).toBe(true);
   });
+
+  // ============================================
+  // Signature Enforcement Tests
+  // ============================================
+  
+  describe('signature enforcement (before_message_send)', () => {
+    it('should register before_message_send hook', async () => {
+      const api = createMockApi();
+      const { default: register } = await import('./index.js');
+      register(api as any);
+      
+      expect(api._hooks['before_message_send']).toBeDefined();
+      expect(api._hooks['before_message_send'].length).toBe(1);
+    });
+
+    it('should auto-append signature when missing (default behavior)', async () => {
+      const api = createMockApi();
+      api.pluginConfig = {
+        signatureEnforcement: {
+          enabled: true,
+          signature: '🔴',
+          signaturePrefix: '— HAL ',
+          action: 'append',
+          channels: ['whatsapp'],
+        }
+      };
+      const { default: register } = await import('./index.js');
+      register(api as any);
+      
+      const result = await api._triggerHook('before_message_send', {
+        content: 'Hello from HAL',
+        channel: 'whatsapp',
+        fromAgent: true,
+      }, { channelId: 'whatsapp' });
+      
+      expect(result).toBeDefined();
+      expect(result.modifiedContent).toContain('🔴');
+      expect(result.modifiedContent).toContain('— HAL');
+      expect(result.block).toBeFalsy();
+    });
+
+    it('should pass through when signature already present', async () => {
+      const api = createMockApi();
+      api.pluginConfig = {
+        signatureEnforcement: {
+          enabled: true,
+          signature: '🔴',
+          action: 'append',
+          channels: ['whatsapp'],
+        }
+      };
+      const { default: register } = await import('./index.js');
+      register(api as any);
+      
+      const result = await api._triggerHook('before_message_send', {
+        content: 'Hello from HAL 🔴',
+        channel: 'whatsapp',
+        fromAgent: true,
+      }, { channelId: 'whatsapp' });
+      
+      // Should not modify - signature already present
+      expect(result).toBeUndefined();
+    });
+
+    it('should block when action=block and signature missing', async () => {
+      const api = createMockApi();
+      api.pluginConfig = {
+        signatureEnforcement: {
+          enabled: true,
+          signature: '🔴',
+          action: 'block',
+          channels: ['whatsapp'],
+        }
+      };
+      const { default: register } = await import('./index.js');
+      register(api as any);
+      
+      const result = await api._triggerHook('before_message_send', {
+        content: 'Hello from HAL',
+        channel: 'whatsapp',
+        fromAgent: true,
+      }, { channelId: 'whatsapp' });
+      
+      expect(result).toBeDefined();
+      expect(result.block).toBe(true);
+      expect(result.blockReason).toContain('missing signature');
+    });
+
+    it('should skip non-enforced channels', async () => {
+      const api = createMockApi();
+      api.pluginConfig = {
+        signatureEnforcement: {
+          enabled: true,
+          signature: '🔴',
+          action: 'block',
+          channels: ['whatsapp'],
+        }
+      };
+      const { default: register } = await import('./index.js');
+      register(api as any);
+      
+      // Discord not in channels list
+      const result = await api._triggerHook('before_message_send', {
+        content: 'Hello from HAL',
+        channel: 'discord',
+        fromAgent: true,
+      }, { channelId: 'discord' });
+      
+      // Should not block - channel not enforced
+      expect(result).toBeUndefined();
+    });
+
+    it('should skip when fromAgent is false', async () => {
+      const api = createMockApi();
+      api.pluginConfig = {
+        signatureEnforcement: {
+          enabled: true,
+          signature: '🔴',
+          action: 'block',
+          channels: ['whatsapp'],
+        }
+      };
+      const { default: register } = await import('./index.js');
+      register(api as any);
+      
+      // Not from agent - forwarding user content
+      const result = await api._triggerHook('before_message_send', {
+        content: 'User said: hello',
+        channel: 'whatsapp',
+        fromAgent: false,
+      }, { channelId: 'whatsapp' });
+      
+      // Should not block/modify - not from agent
+      expect(result).toBeUndefined();
+    });
+
+    it('should skip when enforcement disabled', async () => {
+      const api = createMockApi();
+      api.pluginConfig = {
+        signatureEnforcement: {
+          enabled: false,
+          signature: '🔴',
+          action: 'block',
+          channels: ['whatsapp'],
+        }
+      };
+      const { default: register } = await import('./index.js');
+      register(api as any);
+      
+      const result = await api._triggerHook('before_message_send', {
+        content: 'Hello from HAL',
+        channel: 'whatsapp',
+        fromAgent: true,
+      }, { channelId: 'whatsapp' });
+      
+      // Should not block - enforcement disabled
+      expect(result).toBeUndefined();
+    });
+
+    it('should use custom signature from config', async () => {
+      const api = createMockApi();
+      api.pluginConfig = {
+        signatureEnforcement: {
+          enabled: true,
+          signature: '⬤',
+          action: 'append',
+          channels: ['whatsapp'],
+        }
+      };
+      const { default: register } = await import('./index.js');
+      register(api as any);
+      
+      // Has custom signature
+      const resultWithSig = await api._triggerHook('before_message_send', {
+        content: 'Hello ⬤',
+        channel: 'whatsapp',
+        fromAgent: true,
+      }, { channelId: 'whatsapp' });
+      
+      expect(resultWithSig).toBeUndefined(); // Already has signature
+      
+      // Missing custom signature
+      const resultNoSig = await api._triggerHook('before_message_send', {
+        content: 'Hello',
+        channel: 'whatsapp',
+        fromAgent: true,
+      }, { channelId: 'whatsapp' });
+      
+      expect(resultNoSig?.modifiedContent).toContain('⬤');
+    });
+  });
 });

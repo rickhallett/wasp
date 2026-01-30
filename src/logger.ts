@@ -1,17 +1,17 @@
 /**
  * wasp file logger
- * 
+ *
  * Usage:
  *   import { log, logInfo, logWarn, logError } from './logger.js';
  *   log('check', '+447375862225', 'allowed', { trust: 'sovereign' });
- * 
+ *
  * Watch in real-time:
  *   tail -f ~/.wasp/wasp.log
  */
 
-import { appendFileSync, mkdirSync, existsSync } from 'fs';
-import { join } from 'path';
+import { appendFileSync, existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
+import { join } from 'path';
 
 const LOG_DIR = process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
 const LOG_FILE = join(LOG_DIR, 'wasp.log');
@@ -31,7 +31,12 @@ function formatTimestamp(): string {
   return new Date().toISOString();
 }
 
-function formatMessage(level: LogLevel, category: string, message: string, data?: Record<string, unknown>): string {
+function formatMessage(
+  level: LogLevel,
+  category: string,
+  message: string,
+  data?: Record<string, unknown>
+): string {
   const timestamp = formatTimestamp();
   const dataStr = data ? ` ${JSON.stringify(data)}` : '';
   return `[${timestamp}] [${level}] [${category}] ${message}${dataStr}\n`;
@@ -81,26 +86,21 @@ export function logError(category: string, message: string, data?: Record<string
 
 // Convenience functions for common operations
 export const logger = {
-  check: (identifier: string, result: string, data?: Record<string, unknown>) => 
+  check: (identifier: string, result: string, data?: Record<string, unknown>) =>
     log('check', `${identifier} → ${result}`, data),
-  
-  add: (identifier: string, trust: string) => 
-    log('contacts', `added ${identifier}`, { trust }),
-  
-  remove: (identifier: string) => 
-    log('contacts', `removed ${identifier}`),
-  
-  block: (identifier: string, reason: string) => 
-    logWarn('block', `${identifier}: ${reason}`),
-  
-  tool: (tool: string, action: 'allow' | 'block', data?: Record<string, unknown>) => 
+
+  add: (identifier: string, trust: string) => log('contacts', `added ${identifier}`, { trust }),
+
+  remove: (identifier: string) => log('contacts', `removed ${identifier}`),
+
+  block: (identifier: string, reason: string) => logWarn('block', `${identifier}: ${reason}`),
+
+  tool: (tool: string, action: 'allow' | 'block', data?: Record<string, unknown>) =>
     log('tool', `${tool} → ${action}`, data),
-  
-  plugin: (event: string, data?: Record<string, unknown>) => 
-    log('plugin', event, data),
-  
-  server: (event: string, data?: Record<string, unknown>) => 
-    log('server', event, data),
+
+  plugin: (event: string, data?: Record<string, unknown>) => log('plugin', event, data),
+
+  server: (event: string, data?: Record<string, unknown>) => log('server', event, data),
 };
 
 export function getLogPath(): string {

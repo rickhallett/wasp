@@ -74,6 +74,28 @@ Simple idea. Meaningful protection.
     └───────────────┘          └───────────────┘
 ```
 
+## Security Model
+
+wasp is a whitelist layer, not an identity verification system. It trusts the upstream platform's sender authentication.
+
+**What this means:**
+- WhatsApp/Telegram/Signal verify sender phone numbers at their servers
+- By the time a message reaches wasp, the sender ID has been authenticated by the platform
+- wasp checks this verified ID against your whitelist
+
+**What wasp protects against:**
+- Prompt injection from unknown contacts
+- Messages from strangers reaching your agent
+- Social engineering via untrusted channels
+
+**What wasp does NOT protect against:**
+- A compromised trusted contact's account
+- Platform-level vulnerabilities
+- Physical access to a trusted person's device
+- Insider threats (someone you trusted who turns malicious)
+
+wasp is one layer in defense-in-depth, not a complete security solution. See [SECURITY.md](./SECURITY.md) for the full threat model and security documentation.
+
 ## Installation
 
 ```bash
@@ -386,7 +408,7 @@ Core whitelist logic, Moltbot plugin integration, and HTTP API are all implement
 - [ ] Encrypted storage
 - [ ] Web UI for whitelist management
 
-## Security Model
+## Security Architecture
 
 ### The Threat
 

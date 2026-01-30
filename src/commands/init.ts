@@ -1,19 +1,42 @@
+import { output } from '../cli/output.js';
+import type { InitResult, OutputOptions } from '../cli/types.js';
 import { getDataDir, initSchema, isInitialized } from '../db/client.js';
 
-export function runInit(force: boolean = false): void {
-  if (isInitialized() && !force) {
-    console.log('wasp is already initialized.');
-    console.log(`Data directory: ${getDataDir()}`);
-    console.log('Use --force to reinitialize.');
-    return;
+export interface InitOptions extends OutputOptions {
+  force?: boolean;
+}
+
+/**
+ * Initialize wasp and return result data (testable)
+ */
+export function doInit(options: Omit<InitOptions, keyof OutputOptions>): InitResult {
+  const dataDir = getDataDir();
+
+  if (isInitialized() && !options.force) {
+    return {
+      kind: 'init',
+      success: true,
+      alreadyInitialized: true,
+      dataDir,
+      message: 'wasp is already initialized.',
+    };
   }
 
   initSchema();
-  console.log('wasp initialized successfully.');
-  console.log(`Data directory: ${getDataDir()}`);
-  console.log('');
-  console.log('Next steps:');
-  console.log('  wasp add "+440123456789" --name "Your Name" --trust sovereign');
-  console.log('  wasp list');
-  console.log('  wasp serve');
+
+  return {
+    kind: 'init',
+    success: true,
+    alreadyInitialized: false,
+    dataDir,
+    message: 'wasp initialized successfully.',
+  };
+}
+
+/**
+ * CLI runner - outputs to console
+ */
+export function runInit(force: boolean = false, options: OutputOptions = {}): void {
+  const result = doInit({ force });
+  output(result, options);
 }

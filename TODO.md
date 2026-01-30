@@ -50,4 +50,16 @@
 
 ---
 
+## Roadmap
+
+### Contact Management
+- [ ] **gog integration for bulk import** — Bootstrap trusted list from Google Contacts via gog CLI; reduces cold-start friction for new installs
+- [ ] **In-chat contact review workflow** — Sovereign approval flow via Moltbot; review quarantined senders without leaving the chat surface
+
+### Defense in Depth
+- [ ] **Cryptographic challenge for dangerous tools** — Secondary auth layer requiring signed token before high-risk tool execution; mitigates compromised trust entry attacks
+- [ ] **Trust attestation lifecycle** — Periodic review prompts with optional TTL on trust grants; prevents stale entries accumulating privilege
+
+---
+
 *Most important: genuine conversation > broadcast marketing*

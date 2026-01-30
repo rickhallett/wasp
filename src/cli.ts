@@ -10,6 +10,7 @@ import { runRemove } from './commands/remove.js';
 import { runReview, showFirstTimeContacts } from './commands/review.js';
 import { runServe } from './commands/serve.js';
 import { closeDb, initSchema, isInitialized } from './db/client.js';
+import { log } from './logger.js';
 
 // Version injected at build time via --define
 declare const __VERSION__: string;
@@ -18,16 +19,19 @@ const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : '0.0.0-dev';
 program
   .name('wasp')
   .description('Security whitelist layer for Moltbot and agentic systems')
-  .version(VERSION);
+  .version(VERSION)
+  .option('-j, --json', 'Output as JSON (applies to all commands)');
 
 program
   .command('init')
   .description('Initialize wasp database')
   .option('-f, --force', 'Reinitialize even if already initialized')
   .action((options) => {
-    runInit(options.force);
+    const globalOpts = program.opts();
+    runInit(options.force, { json: globalOpts.json });
   });
 
+// TODO: trace checl
 program
   .command('add <identifier>')
   .description('Add a contact to the whitelist')
@@ -40,17 +44,21 @@ program
   .option('-n, --name <name>', 'Contact name')
   .option('--notes <notes>', 'Notes about this contact')
   .action((identifier, options) => {
+    log('debug', 'commander:add()');
     ensureInitialized();
-    runAdd(identifier, options);
+    const globalOpts = program.opts();
+    runAdd(identifier, { ...options, json: globalOpts.json });
   });
 
+// TODO: trace check
 program
   .command('remove <identifier>')
   .description('Remove a contact from the whitelist')
   .option('-p, --platform <platform>', 'Platform', 'whatsapp')
   .action((identifier, options) => {
     ensureInitialized();
-    runRemove(identifier, options.platform);
+    const globalOpts = program.opts();
+    runRemove(identifier, options.platform, { json: globalOpts.json });
   });
 
 program
@@ -58,32 +66,38 @@ program
   .description('List all contacts')
   .option('-p, --platform <platform>', 'Filter by platform')
   .option('-t, --trust <level>', 'Filter by trust level')
-  .option('-j, --json', 'Output as JSON')
   .action((options) => {
     ensureInitialized();
-    runList(options);
+    const globalOpts = program.opts();
+    runList({ ...options, json: globalOpts.json || options.json });
   });
 
+// TODO: trace check
 program
   .command('check <identifier>')
   .description('Check if a contact is allowed')
   .option('-p, --platform <platform>', 'Platform', 'whatsapp')
-  .option('-j, --json', 'Output as JSON')
   .option('-q, --quiet', 'Exit code only, no output')
   .action((identifier, options) => {
     ensureInitialized();
-    runCheck(identifier, options);
+    const globalOpts = program.opts();
+    runCheck(identifier, { ...options, json: globalOpts.json || options.json });
   });
 
+// TODO: trace check
 program
   .command('log')
   .description('View audit log')
   .option('-l, --limit <number>', 'Number of entries to show', '50')
   .option('-d, --denied', 'Show only denied entries')
-  .option('-j, --json', 'Output as JSON')
   .action((options) => {
     ensureInitialized();
-    runLog({ ...options, limit: parseInt(options.limit, 10) });
+    const globalOpts = program.opts();
+    runLog({
+      ...options,
+      limit: parseInt(options.limit, 10),
+      json: globalOpts.json || options.json,
+    });
   });
 
 program
@@ -103,7 +117,8 @@ program
   .option('-i, --interactive', 'Interactive review mode')
   .action(async (options) => {
     ensureInitialized();
-    await runReview(options);
+    const globalOpts = program.opts();
+    await runReview({ ...options, json: globalOpts.json });
   });
 
 program
@@ -112,7 +127,8 @@ program
   .option('-l, --limit <number>', 'Number to show', '20')
   .action((options) => {
     ensureInitialized();
-    showFirstTimeContacts(parseInt(options.limit, 10));
+    const globalOpts = program.opts();
+    showFirstTimeContacts(parseInt(options.limit, 10), { json: globalOpts.json });
   });
 
 function ensureInitialized(): void {

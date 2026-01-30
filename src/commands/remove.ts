@@ -1,12 +1,37 @@
+import { output } from '../cli/output.js';
+import type { ContactRemoveResult, OutputOptions } from '../cli/types.js';
 import { removeContact } from '../db/contacts.js';
 import type { Platform } from '../types.js';
 
-export function runRemove(identifier: string, platform: Platform = 'whatsapp'): void {
+export interface RemoveOptions extends OutputOptions {
+  platform?: Platform;
+}
+
+/**
+ * Remove a contact and return result data (testable)
+ */
+export function doRemoveContact(
+  identifier: string,
+  platform: Platform = 'whatsapp'
+): ContactRemoveResult {
   const removed = removeContact(identifier, platform);
 
-  if (removed) {
-    console.log(`Removed: ${identifier} (${platform})`);
-  } else {
-    console.log(`Not found: ${identifier} (${platform})`);
-  }
+  return {
+    kind: 'contact-remove',
+    identifier,
+    platform,
+    removed,
+  };
+}
+
+/**
+ * CLI runner - outputs to console
+ */
+export function runRemove(
+  identifier: string,
+  platform: Platform = 'whatsapp',
+  options: OutputOptions = {}
+): void {
+  const result = doRemoveContact(identifier, platform);
+  output(result, options);
 }

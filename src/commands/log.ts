@@ -1,27 +1,37 @@
+import { output } from '../cli/output.js';
+import type { AuditLogResult, OutputOptions } from '../cli/types.js';
 import { getAuditLog } from '../db/audit.js';
 
-export function runLog(options: { limit?: number; denied?: boolean; json?: boolean }): void {
+export interface LogOptions extends OutputOptions {
+  limit?: number;
+  denied?: boolean;
+}
+
+/**
+ * Get audit log data (testable, no side effects)
+ */
+export function getAuditLogData(options: Omit<LogOptions, keyof OutputOptions>): AuditLogResult {
+  const limit = options.limit || 50;
   const entries = getAuditLog({
-    limit: options.limit || 50,
+    limit,
     decision: options.denied ? 'deny' : undefined,
   });
 
-  if (entries.length === 0) {
-    console.log('No audit entries found.');
-    return;
-  }
+  return {
+    kind: 'audit-log',
+    entries,
+    count: entries.length,
+    filters: {
+      limit,
+      deniedOnly: options.denied || false,
+    },
+  };
+}
 
-  if (options.json) {
-    console.log(JSON.stringify(entries, null, 2));
-    return;
-  }
-
-  console.log(`Last ${entries.length} audit entries:\n`);
-
-  for (const e of entries) {
-    const icon = e.decision === 'allow' ? '✓' : e.decision === 'limited' ? '~' : '✗';
-    console.log(`  ${icon} ${e.timestamp} | ${e.identifier} (${e.platform})`);
-    console.log(`    Decision: ${e.decision} - ${e.reason}`);
-    console.log('');
-  }
+/**
+ * CLI runner - outputs to console
+ */
+export function runLog(options: LogOptions): void {
+  const result = getAuditLogData(options);
+  output(result, options);
 }

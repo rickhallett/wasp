@@ -10,6 +10,7 @@ import { initSchema, setDataDir } from '../src/db/client.js';
 import { logDecision, getAuditLog } from '../src/db/audit.js';
 import { quarantineMessage, getQuarantined, releaseQuarantined } from '../src/db/quarantine.js';
 import { logger } from '../src/logger.js';
+import { checkSignature, validateSignatureConfig, validateSignatureConfigAtStartup, type SignatureConfig } from '../src/signature.js';
 import type { Platform, TrustLevel } from '../src/types.js';
 
 interface WaspConfig {
@@ -18,6 +19,14 @@ interface WaspConfig {
   notifySovereign?: boolean;
   dangerousTools?: string[];
   safeTools?: string[];
+  /** Signature enforcement for outbound messages */
+  signatureEnforcement?: {
+    enabled: boolean;
+    signature?: string;        // REQUIRED if enabled, no default
+    signaturePrefix?: string;  // e.g., "— HAL " (prepended to signature)
+    action?: 'block' | 'append';
+    channels?: string[];       // default ['whatsapp']
+  };
 }
 
 interface PluginApi {
@@ -80,6 +89,20 @@ export default function register(api: PluginApi) {
     api.logger.info('[wasp] Database initialized');
   } catch (err) {
     api.logger.error(`[wasp] Failed to initialize database: ${err}`);
+  }
+
+  // Validate signature enforcement config at startup
+  // Throws if enabled but no signature configured
+  if (config.signatureEnforcement) {
+    try {
+      validateSignatureConfigAtStartup(config.signatureEnforcement);
+      if (config.signatureEnforcement.enabled) {
+        api.logger.info(`[wasp] Signature enforcement enabled (${config.signatureEnforcement.signature})`);
+      }
+    } catch (err) {
+      api.logger.error(`[wasp] ${err}`);
+      throw err; // Fail fast on misconfiguration
+    }
   }
 
   const defaultAction = config.defaultAction || 'block';
@@ -183,6 +206,74 @@ export default function register(api: PluginApi) {
     api.logger.debug(`[wasp] Tool ${toolName} allowed (not in dangerous list)`);
     logger.tool(toolName, 'allow', { reason: 'not in dangerous list', sender, trust });
     return undefined;
+  });
+
+  // ============================================
+  // Hook: before_message_send
+  // Enforce HAL signature on outbound messages
+  // Returns { block: true, blockReason: "..." } to block
+  // Returns { modifiedContent: "..." } to modify the message
+  // ============================================
+  api.on('before_message_send', async (event: any, ctx: any) => {
+    // Get signature config (with defaults)
+    const sigConfig = config.signatureEnforcement;
+    
+    // Validate config if provided
+    if (sigConfig && !validateSignatureConfig(sigConfig)) {
+      api.logger.warn('[wasp] Invalid signatureEnforcement config, using defaults');
+    }
+    
+    // Determine channel from context or event
+    const channel = ctx?.channelId || ctx?.ChannelId || event.channel || 'whatsapp';
+    
+    // Check signature
+    const result = checkSignature(
+      {
+        content: event.content || event.message || '',
+        channel,
+        fromAgent: event.fromAgent !== false, // Default to true if not specified
+        target: event.target,
+        metadata: event.metadata,
+      },
+      sigConfig
+    );
+    
+    // Handle block
+    if (result.block) {
+      api.logger.warn(`[wasp] BLOCKED message send: ${result.blockReason}`);
+      logger.plugin('before_message_send', { 
+        action: 'block', 
+        channel, 
+        reason: 'missing signature' 
+      });
+      return {
+        block: true,
+        blockReason: result.blockReason,
+      };
+    }
+    
+    // Handle append
+    if (result.signatureAppended && result.modifiedContent) {
+      api.logger.info(`[wasp] Auto-appended HAL signature to ${channel} message`);
+      logger.plugin('before_message_send', { 
+        action: 'append', 
+        channel 
+      });
+      return {
+        modifiedContent: result.modifiedContent,
+      };
+    }
+    
+    // Signature was already present or enforcement not applicable
+    if (result.signaturePresent) {
+      logger.plugin('before_message_send', { 
+        action: 'pass', 
+        channel, 
+        signaturePresent: true 
+      });
+    }
+    
+    return undefined; // No modification needed
   });
 
   // ============================================

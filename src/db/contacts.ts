@@ -1,6 +1,6 @@
+import { logger } from '../logger.js';
 import type { CheckResult, Contact, ContactRow, Platform, TrustLevel } from '../types.js';
 import { getDb } from './client.js';
-import { logger } from '../logger.js';
 
 /**
  * Map database row to Contact interface.

@@ -1,15 +1,22 @@
+import { output } from '../cli/output.js';
+import type { ContactAddResult, OutputOptions } from '../cli/types.js';
 import { addContact } from '../db/contacts.js';
 import type { Platform, TrustLevel } from '../types.js';
 
-export function runAdd(
+export interface AddOptions extends OutputOptions {
+  platform?: Platform;
+  trust?: TrustLevel;
+  name?: string;
+  notes?: string;
+}
+
+/**
+ * Add a contact and return result data (testable, no side effects)
+ */
+export function doAddContact(
   identifier: string,
-  options: {
-    platform?: Platform;
-    trust?: TrustLevel;
-    name?: string;
-    notes?: string;
-  }
-): void {
+  options: Omit<AddOptions, keyof OutputOptions>
+): ContactAddResult {
   const contact = addContact(
     identifier,
     options.platform || 'whatsapp',
@@ -18,10 +25,16 @@ export function runAdd(
     options.notes
   );
 
-  console.log('Contact added/updated:');
-  console.log(`  Identifier: ${contact.identifier}`);
-  console.log(`  Platform:   ${contact.platform}`);
-  console.log(`  Trust:      ${contact.trust}`);
-  if (contact.name) console.log(`  Name:       ${contact.name}`);
-  if (contact.notes) console.log(`  Notes:      ${contact.notes}`);
+  return {
+    kind: 'contact-add',
+    contact,
+  };
+}
+
+/**
+ * CLI runner - outputs to console
+ */
+export function runAdd(identifier: string, options: AddOptions): void {
+  const result = doAddContact(identifier, options);
+  output(result, options);
 }
