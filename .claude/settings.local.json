@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun *)",
+      "Bash(git *)",
+      "Bash(./bin/*)",
+      "Bash(./scripts/*)",
+      "Read(*)",
+      "Write(*)"
+    ],
+    "deny": [
+      "Bash(sudo *)",
+      "Bash(rm -rf *)"
+    ]
+  }
+}

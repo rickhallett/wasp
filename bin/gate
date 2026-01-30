@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# The Gate - must pass before any task is "done"
+# Returns non-zero on failure with verbose output
+
+set -e
+
+echo "🚦 Running gate..."
+echo ""
+
+FAILED=0
+
+# Type check (TypeScript)
+if [ -f "tsconfig.json" ]; then
+    echo "📘 Type checking..."
+    if bun run typecheck 2>/dev/null; then
+        echo "   ✅ Types OK"
+    else
+        echo "   ❌ Type errors"
+        FAILED=1
+    fi
+    echo ""
+fi
+
+# Lint (Biome)
+echo "🔍 Linting..."
+if bun run lint 2>/dev/null; then
+    echo "   ✅ Lint OK"
+else
+    echo "   ❌ Lint errors"
+    FAILED=1
+fi
+echo ""
+
+# Test
+echo "🧪 Testing..."
+if bun test 2>/dev/null; then
+    echo "   ✅ Tests OK"
+else
+    echo "   ❌ Test failures"
+    FAILED=1
+fi
+echo ""
+
+# Summary
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [ $FAILED -eq 0 ]; then
+    echo "✅ Gate passed. Ready to ship."
+    exit 0
+else
+    echo "❌ Gate failed. Fix issues above."
+    exit 1
+fi

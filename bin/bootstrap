@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Agent self-healing bootstrap script
+# Idempotent — safe to run repeatedly
+
+set -e
+
+echo "🔧 Running bootstrap..."
+
+# Check Bun
+if ! command -v bun &>/dev/null; then
+    echo "❌ Bun not found."
+    if command -v mise &>/dev/null; then
+        echo "   → Installing via mise..."
+        mise install bun@latest
+        mise use bun@latest
+    else
+        echo "   → Install Bun: curl -fsSL https://bun.sh/install | bash"
+        exit 1
+    fi
+fi
+echo "✅ Bun $(bun --version)"
+
+# Install dependencies
+echo "📥 Installing dependencies..."
+bun install
+
+# Check env
+if [ ! -f ".env.local" ]; then
+    if [ -f ".env.example" ]; then
+        echo "⚠️  No .env.local found. Creating from .env.example..."
+        cp .env.example .env.local
+        echo "   → Fill in the values in .env.local"
+    fi
+fi
+
+# Run gate to verify environment
+echo ""
+echo "🚦 Verifying environment..."
+./bin/gate 2>/dev/null && echo "✅ Gate passed" || echo "⚠️  Gate has issues (run ./bin/gate for details)"
+
+echo ""
+echo "✅ Bootstrap complete."
