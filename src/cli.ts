@@ -2,6 +2,7 @@
 
 import { program } from 'commander';
 import { runAdd } from './commands/add.js';
+import { runCanary } from './commands/canary.js';
 import { runCheck } from './commands/check.js';
 import { runInit } from './commands/init.js';
 import { runList } from './commands/list.js';
@@ -105,7 +106,10 @@ program
   .description('Start HTTP server for Moltbot integration')
   .option('-p, --port <number>', 'Port to listen on', '3847')
   .action((options) => {
-    ensureInitialized();
+    if (!isInitialized()) {
+      console.error('wasp is not initialized. Run "wasp init" first.');
+      process.exit(1);
+    }
     runServe({ port: parseInt(options.port, 10) });
   });
 
@@ -129,6 +133,24 @@ program
     ensureInitialized();
     const globalOpts = program.opts();
     showFirstTimeContacts(parseInt(options.limit, 10), { json: globalOpts.json });
+  });
+
+program
+  .command('canary')
+  .description('View prompt injection telemetry')
+  .option('-s, --stats', 'Show aggregate statistics')
+  .option('-c, --clear', 'Clear old entries')
+  .option('-d, --days <number>', 'Days to keep when clearing (default: 30)', '30')
+  .option('-l, --limit <number>', 'Number of entries to show', '20')
+  .action((options) => {
+    ensureInitialized();
+    const globalOpts = program.opts();
+    runCanary({
+      ...options,
+      days: parseInt(options.days, 10),
+      limit: parseInt(options.limit, 10),
+      json: globalOpts.json,
+    });
   });
 
 function ensureInitialized(): void {

@@ -97,10 +97,23 @@ export function initSchema(): void {
       reviewed INTEGER NOT NULL DEFAULT 0
     );
 
+    CREATE TABLE IF NOT EXISTS injection_telemetry (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      identifier TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      score REAL NOT NULL,
+      patterns TEXT,
+      sensitive_verbs TEXT,
+      message_preview TEXT,
+      timestamp TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_contacts_identifier ON contacts(identifier);
     CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
     CREATE INDEX IF NOT EXISTS idx_quarantine_identifier ON quarantine(identifier);
     CREATE INDEX IF NOT EXISTS idx_quarantine_reviewed ON quarantine(reviewed);
+    CREATE INDEX IF NOT EXISTS idx_injection_timestamp ON injection_telemetry(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_injection_identifier ON injection_telemetry(identifier);
   `);
 }
 
