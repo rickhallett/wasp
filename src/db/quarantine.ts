@@ -58,6 +58,23 @@ export function getQuarantinedByIdentifier(
   return rows.map(rowToQuarantinedMessage);
 }
 
+/**
+ * Get all quarantined messages for an identifier on any platform.
+ * Used to resolve platform when approving/denying by identifier only.
+ */
+export function getQuarantinedByIdentifierOnly(identifier: string): QuarantinedMessage[] {
+  const db = getDb();
+
+  const stmt = db.prepare(`
+    SELECT * FROM quarantine 
+    WHERE identifier = ? AND reviewed = 0
+    ORDER BY timestamp ASC
+  `);
+  const rows = stmt.all(identifier) as QuarantineRow[];
+
+  return rows.map(rowToQuarantinedMessage);
+}
+
 export function releaseQuarantined(
   identifier: string,
   platform: Platform = 'whatsapp'

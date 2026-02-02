@@ -112,6 +112,7 @@ export interface QuarantineApproveResult {
 export interface QuarantineDenyResult {
   kind: 'quarantine-deny';
   identifier: string;
+  platform: Platform;
   deletedCount: number;
   success: boolean;
 }

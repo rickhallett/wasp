@@ -8,7 +8,12 @@ import type {
 } from '../cli/types.js';
 import { getAuditLog } from '../db/audit.js';
 import { addContact } from '../db/contacts.js';
-import { deleteQuarantined, getQuarantined, releaseQuarantined } from '../db/quarantine.js';
+import {
+  deleteQuarantined,
+  getQuarantined,
+  getQuarantinedByIdentifierOnly,
+  releaseQuarantined,
+} from '../db/quarantine.js';
 
 export interface ReviewOptions extends OutputOptions {
   approve?: string;
@@ -20,7 +25,18 @@ export interface ReviewOptions extends OutputOptions {
  * Approve a quarantined sender and release their messages
  */
 export function doApproveQuarantined(identifier: string): QuarantineApproveResult {
-  const messages = releaseQuarantined(identifier);
+  const existing = getQuarantinedByIdentifierOnly(identifier);
+  if (existing.length === 0) {
+    return {
+      kind: 'quarantine-approve',
+      identifier,
+      platform: 'whatsapp',
+      releasedCount: 0,
+      success: false,
+    };
+  }
+  const platform = existing[0].platform;
+  const messages = releaseQuarantined(identifier, platform);
 
   if (messages.length > 0) {
     addContact(messages[0].identifier, messages[0].platform, 'trusted');
@@ -36,23 +52,35 @@ export function doApproveQuarantined(identifier: string): QuarantineApproveResul
   return {
     kind: 'quarantine-approve',
     identifier,
-    platform: 'whatsapp', // Default, unknown
+    platform,
     releasedCount: 0,
     success: false,
   };
 }
 
 /**
- * Deny a quarantined sender and delete their messages
+ * Deny a quarantined sender and delete their messages.
+ * Sender is left absent from the whitelist so checkContact() returns allowed=false.
  */
 export function doDenyQuarantined(identifier: string): QuarantineDenyResult {
-  const deleted = deleteQuarantined(identifier);
-
-  if (deleted > 0) {
-    addContact(identifier, 'whatsapp', 'limited'); // Add as blocked/limited
+  const existing = getQuarantinedByIdentifierOnly(identifier);
+  if (existing.length === 0) {
     return {
       kind: 'quarantine-deny',
       identifier,
+      platform: 'whatsapp',
+      deletedCount: 0,
+      success: false,
+    };
+  }
+  const platform = existing[0].platform;
+  const deleted = deleteQuarantined(identifier, platform);
+
+  if (deleted > 0) {
+    return {
+      kind: 'quarantine-deny',
+      identifier,
+      platform,
       deletedCount: deleted,
       success: true,
     };
@@ -61,6 +89,7 @@ export function doDenyQuarantined(identifier: string): QuarantineDenyResult {
   return {
     kind: 'quarantine-deny',
     identifier,
+    platform,
     deletedCount: 0,
     success: false,
   };
