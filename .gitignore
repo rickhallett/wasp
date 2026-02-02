@@ -32,3 +32,6 @@ npm-debug.log*
 .env
 .env.local
 repomix-output.xml
+
+# Task artifacts
+tasks/
