@@ -25,6 +25,7 @@ import {
   getQuarantineList,
 } from '../commands/review.js';
 import { closeDb, initSchema, resetCache } from '../db/client.js';
+import { quarantineMessage } from '../db/quarantine.js';
 import { formatResult } from './formatters.js';
 
 beforeAll(() => {
@@ -231,6 +232,44 @@ describe('CLI Result Types', () => {
       expect(result.kind).toBe('quarantine-deny');
       expect(result.success).toBe(false);
       expect(result.deletedCount).toBe(0);
+    });
+
+    it('denied sender stays denied: check returns allowed=false after deny', () => {
+      const identifier = '+440555555555';
+      const platform = 'whatsapp';
+      quarantineMessage(identifier, platform, 'Hello');
+      const denyResult = doDenyQuarantined(identifier);
+      expect(denyResult.success).toBe(true);
+      expect(denyResult.deletedCount).toBe(1);
+
+      const checkResult = doCheckContact(identifier, { platform });
+      expect(checkResult.allowed).toBe(false);
+      expect(checkResult.reason).toContain('whitelist');
+    });
+
+    it('approve quarantined sender on non-whatsapp platform succeeds', () => {
+      const identifier = 'telegram-user-123';
+      const platform = 'telegram';
+      quarantineMessage(identifier, platform, 'Hi from Telegram');
+      const result = doApproveQuarantined(identifier);
+      expect(result.success).toBe(true);
+      expect(result.platform).toBe('telegram');
+      expect(result.releasedCount).toBe(1);
+      const checkResult = doCheckContact(identifier, { platform });
+      expect(checkResult.allowed).toBe(true);
+      expect(checkResult.trust).toBe('trusted');
+    });
+
+    it('deny quarantined sender on non-whatsapp platform succeeds and messages removed', () => {
+      const identifier = 'email-blocked@example.com';
+      const platform = 'email';
+      quarantineMessage(identifier, platform, 'Spam message');
+      const result = doDenyQuarantined(identifier);
+      expect(result.success).toBe(true);
+      expect(result.platform).toBe('email');
+      expect(result.deletedCount).toBe(1);
+      const checkResult = doCheckContact(identifier, { platform });
+      expect(checkResult.allowed).toBe(false);
     });
   });
 
