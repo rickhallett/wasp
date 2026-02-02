@@ -5,7 +5,6 @@ import {
   DEFAULT_SIGNATURE_CONFIG,
   hasSignature,
   type MessageSendEvent,
-  type SignatureConfig,
   validateSignatureConfig,
   validateSignatureConfigAtStartup,
 } from './signature.js';
