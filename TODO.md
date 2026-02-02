@@ -60,6 +60,9 @@
 - [ ] **Cryptographic challenge for dangerous tools** — Secondary auth layer requiring signed token before high-risk tool execution; mitigates compromised trust entry attacks
 - [ ] **Trust attestation lifecycle** — Periodic review prompts with optional TTL on trust grants; prevents stale entries accumulating privilege
 
+### UX / Security
+- [ ] **Sudo/elevated permissions for key operations** — Key assignment, generation, regeneration, and other sensitive operations should require elevated confirmation or sudo-style authentication
+
 ---
 
 *Most important: genuine conversation > broadcast marketing*
