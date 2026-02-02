@@ -9,9 +9,9 @@
  *   tail -f ~/.wasp/wasp.log
  */
 
-import { appendFileSync, existsSync, mkdirSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
+import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 const LOG_DIR = process.env.WASP_DATA_DIR || join(homedir(), '.wasp');
 const LOG_FILE = join(LOG_DIR, 'wasp.log');
