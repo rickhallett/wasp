@@ -9,7 +9,8 @@
 <p align="center">
   <a href="https://getwasp.xyz">getwasp.xyz</a> •
   <a href="https://www.npmjs.com/package/@oceanheartai/wasp">npm</a> •
-  <a href="#quick-start">Quick Start</a>
+  <a href="#quick-start">Quick Start</a> •
+  <a href="https://tools.oceanheart.ai">all tools</a>
 </p>
 
 <p align="center">
