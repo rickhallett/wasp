@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="waspGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e0af68"/>
+      <stop offset="50%" style="stop-color:#ff9e64"/>
+      <stop offset="100%" style="stop-color:#f7768e"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background - Tokyo Night Storm -->
+  <rect width="1280" height="640" fill="#1a1b26"/>
+  
+  <!-- Hex pattern for wasp/security theme -->
+  <pattern id="hexgrid" width="56" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(0.5)">
+    <path d="M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100" fill="none" stroke="#24283b" stroke-width="1"/>
+    <path d="M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34" fill="none" stroke="#24283b" stroke-width="1"/>
+  </pattern>
+  <rect width="1280" height="640" fill="url(#hexgrid)" opacity="0.3"/>
+  
+  <!-- Decorative corners -->
+  <path d="M 40 80 L 40 40 L 80 40" fill="none" stroke="#e0af68" stroke-width="2"/>
+  <path d="M 1200 40 L 1240 40 L 1240 80" fill="none" stroke="#e0af68" stroke-width="2"/>
+  <path d="M 40 560 L 40 600 L 80 600" fill="none" stroke="#e0af68" stroke-width="2"/>
+  <path d="M 1200 600 L 1240 600 L 1240 560" fill="none" stroke="#e0af68" stroke-width="2"/>
+  
+  <!-- ASCII Art -->
+  <text font-family="'JetBrains Mono', 'Fira Code', monospace" font-size="42" fill="url(#waspGrad)" font-weight="bold">
+    <tspan x="390" y="200">░█░█░█▀█░█▀▀░█▀█</tspan>
+    <tspan x="390" y="255">░█▄█░█▀█░▀▀█░█▀▀</tspan>
+    <tspan x="390" y="310">░▀░▀░▀░▀░▀▀▀░▀░░</tspan>
+  </text>
+  
+  <!-- Emoji -->
+  <text x="640" y="400" font-family="system-ui, sans-serif" font-size="72" text-anchor="middle">🐝</text>
+  
+  <!-- Tagline -->
+  <text x="640" y="480" font-family="'JetBrains Mono', monospace" font-size="28" text-anchor="middle" fill="#e0af68">security whitelist for agentic AI</text>
+  
+  <!-- Description -->
+  <text x="640" y="530" font-family="'JetBrains Mono', monospace" font-size="18" text-anchor="middle" fill="#565f89">tool allowlisting • permission boundaries • audit logging</text>
+  
+  <!-- npm badge -->
+  <rect x="555" y="555" width="170" height="30" rx="15" fill="#e0af68" opacity="0.15"/>
+  <text x="640" y="576" font-family="'JetBrains Mono', monospace" font-size="14" text-anchor="middle" fill="#e0af68">@oceanheartai/wasp</text>
+</svg>
