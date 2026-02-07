@@ -1,11 +1,9 @@
 <p align="center">
-  <img src="./assets/logo.png" alt="wasp logo" width="128" />
+  <img src="assets/social-preview.svg" alt="wasp" width="600"/>
 </p>
 
-<h1 align="center">wasp</h1>
-
 <p align="center">
-  <strong>Security whitelist for agentic AI</strong>
+  <em>Tool allowlisting • Permission boundaries • Audit logging</em>
 </p>
 
 <p align="center">
@@ -21,15 +19,13 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
 </p>
 
-<br />
-
 <p align="center">
   <code>prompt injection?</code><br />
   <code><strong>eat shit.</strong></code><br />
   <code>— wasp</code>
 </p>
 
-<br />
+---
 
 A security whitelist layer for [Moltbot](https://github.com/moltbot/moltbot) and similar agentic systems.
 
