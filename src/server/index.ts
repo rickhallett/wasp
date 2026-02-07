@@ -122,6 +122,9 @@ export function createServer() {
     let body: { identifier?: string; platform?: string };
     try {
       body = await c.req.json();
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return c.json({ error: 'Request body must be a JSON object' }, 400);
+      }
     } catch {
       return c.json({ error: 'Invalid JSON body' }, 400);
     }

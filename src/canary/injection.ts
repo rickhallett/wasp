@@ -40,8 +40,9 @@ export interface InjectionStats {
 // Pattern categories with their detection regexes
 const INJECTION_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
   // Direct command injection
-  { name: 'ignore_instructions', pattern: /ignore\s+(previous|all|prior)\s+instructions?/i },
-  { name: 'disregard_safety', pattern: /disregard\s+(previous|safety|rules)/i },
+  { name: 'ignore_instructions', pattern: /ignore\s+(?:your\s+)?(?:previous|all|prior|safety)\s+(?:instructions?|guidelines?|rules?)/i },
+  { name: 'disregard_safety', pattern: /disregard\s+(?:your\s+)?(?:previous|safety|rules)/i },
+  { name: 'forget_instructions', pattern: /forget\s+(?:your|all|previous)\s+(?:instructions?|rules?|guidelines?)/i },
 
   // Authority impersonation
   { name: 'system_tag', pattern: /\[(SYSTEM|ADMIN|ROOT)\]/i },
@@ -60,11 +61,15 @@ const INJECTION_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
   { name: 'must_action', pattern: /must\s+(forward|send|execute|delete)/i },
 
   // Role hijacking
-  { name: 'jailbreak', pattern: /(?:DAN|jailbreak|bypass\s+filters?)/i },
+  { name: 'jailbreak', pattern: /(?:DAN|jailbreak|bypass\s+(?:your\s+)?filters?)/i },
   {
     name: 'pretend_mode',
     pattern: /pretend\s+(?:you\s+are|to\s+be)\s+(?:an?\s+)?(?:unrestricted|evil|hacker)/i,
   },
+  { name: 'you_are_unrestricted', pattern: /you\s+are\s+(?:an?\s+)?unrestricted/i },
+  { name: 'act_as_evil', pattern: /act\s+as\s+(?:an?\s+)?(?:evil|unrestricted|malicious)/i },
+  { name: 'entering_mode', pattern: /entering\s+(?:DAN|jailbreak|unrestricted)\s+mode/i },
+  { name: 'no_restrictions', pattern: /(?:without|no|ignore)\s+(?:any\s+)?restrictions/i },
 ];
 
 // Sensitive action verbs that could indicate malicious intent
